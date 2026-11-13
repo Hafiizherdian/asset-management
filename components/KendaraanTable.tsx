@@ -15,13 +15,16 @@ export type VehicleListRow = {
 };
 
 const PER_PAGE = 10;
-const INIT = { tab: "all", q: "", fungsi: "", area: "", page: 1 };
+const INIT = { tab: "all", q: "", fungsi: "", page: 1 };
 
 export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] }) {
   const [f, setF] = useState(INIT);
   const set = (p: Partial<typeof INIT>) => setF((s) => ({ ...s, page: 1, ...p }));
   const aktif = vehicles.filter((v) => v.aktif).length;
-  const uniq = (k: "fungsi" | "area") => [...new Set(vehicles.map((v) => v[k]))].filter(Boolean).sort();
+  const fungsiOptions = useMemo(
+    () => [...new Set(vehicles.map((v) => v.fungsi))].filter(Boolean).sort(),
+    [vehicles],
+  );
 
   const rows = useMemo(
     () =>
@@ -29,7 +32,6 @@ export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] 
         (v) =>
           (f.tab === "all" || (f.tab === "a" ? v.aktif : !v.aktif)) &&
           (!f.fungsi || v.fungsi === f.fungsi) &&
-          (!f.area || v.area === f.area) &&
           `${v.nopol} ${v.merk}`.toLowerCase().includes(f.q.toLowerCase()),
       ),
     [vehicles, f],
@@ -58,11 +60,7 @@ export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] 
         <input placeholder="Cari merk atau nomor polisi" value={f.q} onChange={(e) => set({ q: e.target.value })} />
         <select value={f.fungsi} onChange={(e) => set({ fungsi: e.target.value })}>
           <option value="">Semua fungsi</option>
-          {uniq("fungsi").map((x) => <option key={x}>{x}</option>)}
-        </select>
-        <select value={f.area} onChange={(e) => set({ area: e.target.value })}>
-          <option value="">Semua area</option>
-          {uniq("area").map((x) => <option key={x}>{x}</option>)}
+          {fungsiOptions.map((x) => <option key={x}>{x}</option>)}
         </select>
         <button className="s" onClick={() => setF(INIT)}>Reset filter</button>
       </div>

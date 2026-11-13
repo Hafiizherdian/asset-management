@@ -1,7 +1,11 @@
 import { BULAN } from "@/lib/kendaraan-utils";
+import ThemeSwitcher from "./ThemeSwitcher";
 
 export const Header = ({ page }: { page: string }) => (
-  <header><span>Asset Management › <b>{page}</b></span><span>Administrator</span></header>
+  <header>
+    <span>Asset Management › <b>{page}</b></span>
+    <span className="ts"><ThemeSwitcher /><span>Administrator</span></span>
+  </header>
 );
 export const Kpi = ({ label, value }: { label: string; value: number | string }) => (
   <div className="card kpi"><div className="l">{label}</div><div className="v">{value}</div></div>

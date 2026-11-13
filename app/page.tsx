@@ -3,7 +3,7 @@ import { countBy, getAlerts } from "@/lib/kendaraan-utils";
 import { Header, Kpi, StatusBadge, DueBadge, dayMonth } from "@/components/ui";
 
 export const dynamic = "force-dynamic";
-const COLORS = ["#0f7b5f", "#1ea7fd", "#ffb200", "#5ac800", "#8f6bd8"];
+const COLORS = ["var(--g)", "#1ea7fd", "#ffb200", "#5ac800", "#8f6bd8"];
 
 export default async function Overview() {
   const vs = await getVehicles();

@@ -73,21 +73,30 @@ export default function VehicleImporter() {
     }
   }
 
+  function clearFile() {
+  workbook.current = null;
+  setFileName("");
+  setSheets([]);
+  setSheet("");
+  setParsed(null);
+  setParseError(null);
+  setError(null);
+  setResult(null);
+}
+
   function handleImport() {
-    if (!parsed) return;
-    setError(null);
-    startTransition(async () => {
-      const res = await importVehicles({ rows: parsed.rows, mode, fileName, sheetName: sheet });
-      if (res.ok) {
-        setResult(res.data);
-        setParsed(null);
-        setFileName("");
-        setSheets([]);
-      } else {
-        setError(res.error);
-      }
-    });
-  }
+  if (!parsed) return;
+  setError(null);
+  startTransition(async () => {
+    const res = await importVehicles({ rows: parsed.rows, mode, fileName, sheetName: sheet });
+    if (res.ok) {
+      clearFile();
+      setResult(res.data);
+    } else {
+      setError(res.error);
+    }
+  });
+}
 
   return (
     <div className="stack">
@@ -109,19 +118,26 @@ export default function VehicleImporter() {
           Format .xlsx, .xls, atau .csv. Judul kolom dicari otomatis, jadi tidak harus di baris pertama.
         </p>
 
-        <label className="drop">
-          <span>{fileName || "Klik untuk memilih file"}</span>
-          <input
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="sr-only"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              e.target.value = "";
-              handleFile(file);
-            }}
-          />
-        </label>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <label className="drop" style={{ flex: 1 }}>
+            <span>{fileName || "Klik untuk memilih file"}</span>
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = "";
+                handleFile(file);
+              }}
+            />
+          </label>
+          {fileName && (
+            <button type="button" className="s" style={{ marginTop: 12 }} onClick={clearFile}>
+              Hapus file
+            </button>
+          )}
+        </div>
 
         {sheets.length > 1 && (
           <label className="field">

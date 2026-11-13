@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { withTransaction } from "@/lib/db";
+import { pool, withTransaction } from "@/lib/db";
 import {
   IMPORT_FIELDS,
   dedupeByNopol,
@@ -95,5 +95,17 @@ export async function importVehicles(input: {
   } catch (error) {
     console.error(error);
     return { ok: false, error: "Terjadi kesalahan di server. Coba lagi." };
+  }
+}
+
+export async function deleteImportLog(id: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    if (!/^[0-9a-f-]{36}$/i.test(String(id))) return { ok: false, error: "ID tidak valid" };
+    await pool.query("delete from import_logs where id = $1", [id]);
+    revalidatePath("/impor");
+    return { ok: true };
+  } catch (error) {
+    console.error(error);
+    return { ok: false, error: "Gagal menghapus riwayat." };
   }
 }

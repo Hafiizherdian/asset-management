@@ -1,6 +1,7 @@
 import { getImportLogs } from "@/lib/queries";
 import { Header } from "@/components/ui";
 import VehicleImporter from "@/components/KendaraanImporter";
+import DeleteLogButton from "@/components/DeleteLogButton";
 
 export const dynamic = "force-dynamic";
 
@@ -32,12 +33,12 @@ export default async function ImportPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Waktu</th><th>File</th><th>Baru</th><th>Diperbarui</th><th>Dilewati</th>
+                  <th>Waktu</th><th>File</th><th>Baru</th><th>Diperbarui</th><th>Dilewati</th><th></th>
                 </tr>
               </thead>
               <tbody>
                 {logs.length === 0 ? (
-                  <tr><td colSpan={5} className="sub">Belum ada riwayat impor.</td></tr>
+                  <tr><td colSpan={6} className="sub">Belum ada riwayat impor.</td></tr>
                 ) : (
                   logs.map((l) => (
                     <tr key={l.id}>
@@ -46,6 +47,7 @@ export default async function ImportPage() {
                       <td>{l.inserted}</td>
                       <td>{l.updated}</td>
                       <td>{l.skipped}</td>
+                      <td><DeleteLogButton id={l.id} fileName={l.file_name} /></td>
                     </tr>
                   ))
                 )}
