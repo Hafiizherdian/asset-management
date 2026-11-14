@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 import { pool, withTransaction } from "@/lib/db";
 import {
   IMPORT_FIELDS,
-  dedupeByNopol,
   planImport,
   type ImportMode,
   type ImportSummary,
@@ -26,9 +25,6 @@ const COLS: [string, string][] = [
 ];
 const names = COLS.map(([n]) => n).join(", ");
 const defs = COLS.map(([n, t]) => `${n} ${t}`).join(", ");
-const updates = COLS.filter(([n]) => n !== "nopol")
-  .map(([n]) => `${n} = excluded.${n}`)
-  .join(", ");
 
 /** Data dari browser tidak dipercaya: paksa semuanya jadi teks. */
 function cleanRows(input: unknown): RawImportRow[] {
@@ -51,43 +47,52 @@ export async function importVehicles(input: {
     const raw = cleanRows(input.rows);
     if (raw.length === 0) return { ok: false, error: "Tidak ada baris untuk diimpor" };
     if (raw.length > MAX_ROWS) return { ok: false, error: `Maksimal ${MAX_ROWS} baris per impor` };
-    const mode: ImportMode = input.mode === "skip" ? "skip" : "update";
+    const mode: ImportMode = input.mode === "replace" ? "replace" : "append";
 
-    const rows = dedupeByNopol(planImport(raw).rows);
+    const rows = planImport(raw).rows;
+    if (rows.length === 0) return { ok: false, error: "Tidak ada baris dengan No. Polisi yang valid" };
+
     const payload = JSON.stringify(
-      rows.map((r) => Object.fromEntries(COLS.map(([n]) => [n, r[n as keyof typeof r]]))),
+      rows.map((r) => ({
+        line: r.line,
+        ...Object.fromEntries(COLS.map(([n]) => [n, r[n as keyof typeof r]])),
+      })),
     );
+    const fileName = String(input.fileName ?? "").trim().slice(0, 200) || "(tanpa nama)";
+    const sheetName = String(input.sheetName ?? "").trim().slice(0, 100) || null;
 
     const summary = await withTransaction(async (client) => {
-      const conflict =
-        mode === "update"
-          ? `do update set ${updates}, updated_at = now() returning (xmax = 0) as inserted`
-          : `do nothing returning true as inserted`;
+      // "replace": buang impor sebelumnya dengan file + sheet yang sama (data kendaraannya ikut terhapus)
+      let replaced = 0;
+      if (mode === "replace") {
+        const old = await client.query<{ count: number }>(
+          `select count(*)::int as count from vehicles
+           where import_id in (
+             select id from import_logs where file_name = $1 and sheet_name is not distinct from $2::text)`,
+          [fileName, sheetName],
+        );
+        replaced = old.rows[0].count;
+        await client.query(
+          `delete from import_logs where file_name = $1 and sheet_name is not distinct from $2::text`,
+          [fileName, sheetName],
+        );
+      }
 
-      const res = await client.query<{ inserted: boolean }>(
-        `insert into vehicles (${names})
-         select ${names} from jsonb_to_recordset($1::jsonb) as x(${defs})
-         on conflict (nopol) ${conflict}`,
-        [payload],
+      const skipped = raw.length - rows.length;
+      const log = await client.query<{ id: string }>(
+        `insert into import_logs (file_name, sheet_name, total_rows, inserted, updated, skipped)
+         values ($1, $2, $3, $4, $5, $6) returning id`,
+        [fileName, sheetName, raw.length, rows.length, replaced, skipped],
       );
-
-      const inserted = res.rows.filter((r) => r.inserted).length;
-      const updated = res.rows.length - inserted;
-      const skipped = raw.length - inserted - updated;
 
       await client.query(
-        `insert into import_logs (file_name, sheet_name, total_rows, inserted, updated, skipped)
-         values ($1, $2, $3, $4, $5, $6)`,
-        [
-          String(input.fileName ?? "").trim().slice(0, 200) || "(tanpa nama)",
-          String(input.sheetName ?? "").trim().slice(0, 100) || null,
-          raw.length,
-          inserted,
-          updated,
-          skipped,
-        ],
+        `insert into vehicles (import_id, line, ${names})
+         select $2::uuid, x.line, ${names}
+         from jsonb_to_recordset($1::jsonb) as x(line int, ${defs})`,
+        [payload, log.rows[0].id],
       );
-      return { inserted, updated, skipped };
+
+      return { inserted: rows.length, updated: replaced, skipped };
     });
 
     revalidatePath("/", "layout");
@@ -98,14 +103,15 @@ export async function importVehicles(input: {
   }
 }
 
+/** Menghapus riwayat impor sekaligus semua data kendaraan dari impor itu (on delete cascade). */
 export async function deleteImportLog(id: string): Promise<{ ok: boolean; error?: string }> {
   try {
     if (!/^[0-9a-f-]{36}$/i.test(String(id))) return { ok: false, error: "ID tidak valid" };
     await pool.query("delete from import_logs where id = $1", [id]);
-    revalidatePath("/impor");
+    revalidatePath("/", "layout");
     return { ok: true };
   } catch (error) {
     console.error(error);
-    return { ok: false, error: "Gagal menghapus riwayat." };
+    return { ok: false, error: "Gagal menghapus impor." };
   }
 }

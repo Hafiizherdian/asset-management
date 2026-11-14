@@ -53,7 +53,8 @@ export interface ParsedGrid {
   headerLine: number;
 }
 
-export type ImportMode = "update" | "skip";
+/** append = tambah sebagai data baru; replace = ganti impor sebelumnya dengan file + sheet yang sama. */
+export type ImportMode = "append" | "replace";
 export interface ImportSummary {
   inserted: number;
   updated: number;
@@ -233,9 +234,11 @@ function clean(value: unknown, max = 500) {
   return EMPTY.test(s) ? "" : s.slice(0, max);
 }
 
-/** "N-1491-HI", "n 1491 hi", "N 1491 HI " semuanya jadi "N 1491 HI". */
-function cleanNopol(value: unknown) {
-  return String(value ?? "").trim().replace(/[-\s]+/g, " ").toUpperCase().slice(0, 30);
+/** "N-1491-HI", "n 1491 hi", "N 1491 HI " semuanya jadi "N 1491 HI". Placeholder jadi "". */
+export function cleanNopol(value: unknown) {
+  const s = String(value ?? "").trim();
+  if (EMPTY.test(s)) return "";
+  return s.replace(/[-\s]+/g, " ").trim().toUpperCase().slice(0, 30);
 }
 
 function toInt(value: string, min: number, max: number) {
@@ -249,9 +252,9 @@ function toMoney(value: string) {
   return digits ? Number(digits) : null;
 }
 
-export function planImport(raw: RawImportRow[]): ImportPlan {
-  const lastLine = new Map<string, number>();
-  for (const r of raw) lastLine.set(cleanNopol(r.nopol), r.line);
+/** Baris tanpa No. Polisi yang valid dibuang. Baris kembar tetap disimpan (untuk riwayat). */
+export function planImport(allRaw: RawImportRow[]): ImportPlan {
+  const raw = allRaw.filter((r) => cleanNopol(r.nopol));
 
   const rows = raw.map((r): ImportRow => {
     const issues: string[] = [];
@@ -267,9 +270,6 @@ export function planImport(raw: RawImportRow[]): ImportPlan {
     const nopol = cleanNopol(r.nopol);
     const area = clean(r.area, 100);
     if (!area) issues.push("Area kosong, disimpan sebagai Tanpa area");
-    if (lastLine.get(nopol) !== r.line) {
-      issues.push(`Duplikat, yang dipakai baris ${lastLine.get(nopol)}`);
-    }
 
     const statusRaw = clean(r.status, 30).toLowerCase();
     if (!statusRaw) issues.push("Status kosong, dianggap aktif");
@@ -309,11 +309,4 @@ export function planImport(raw: RawImportRow[]): ImportPlan {
   });
 
   return { rows, withIssues: rows.filter((r) => r.issues.length > 0).length };
-}
-
-/** Jika No. Polisi sama muncul lebih dari sekali, baris terakhir yang dipakai. */
-export function dedupeByNopol(rows: ImportRow[]) {
-  const map = new Map<string, ImportRow>();
-  for (const row of rows) map.set(row.nopol, row);
-  return [...map.values()];
 }

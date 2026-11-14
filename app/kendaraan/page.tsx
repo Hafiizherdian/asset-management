@@ -1,6 +1,6 @@
 import { getVehicles } from "@/lib/queries";
 import { worstAlert } from "@/lib/kendaraan-alert";
-import { Header } from "@/components/ui";
+import Header from "@/components/Header";
 import VehicleTable from "@/components/KendaraanTable";
 
 export const dynamic = "force-dynamic";
@@ -22,7 +22,7 @@ export default async function Daftar() {
     <>
       <Header page="Daftar kendaraan" />
       <div className="pg">
-        <h1>Daftar kendaraan</h1>
+        {/* <h1>Daftar kendaraan</h1> */}
         <VehicleTable vehicles={rows} />
       </div>
     </>

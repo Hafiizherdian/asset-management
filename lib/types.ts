@@ -1,5 +1,7 @@
 export type Vehicle = {
   id: string;
+  import_id: string | null;
+  line: number | null;
   area: string;
   aktif: boolean;
   kode: number | null;
@@ -25,6 +27,11 @@ export type Vehicle = {
   keterangan: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type VehicleHistoryRow = Vehicle & {
+  file_name: string | null;
+  imported_at: string | null;
 };
 
 export type ImportLogRow = {

@@ -22,12 +22,19 @@ export default function VehicleImporter() {
   const [sheet, setSheet] = useState("");
   const [parsed, setParsed] = useState<ParsedGrid | null>(null);
   const [parseError, setParseError] = useState<string | null>(null);
-  const [mode, setMode] = useState<ImportMode>("update");
+  const [mode, setMode] = useState<ImportMode>("append");
   const [result, setResult] = useState<ImportSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const plan = useMemo(() => (parsed ? planImport(parsed.rows) : null), [parsed]);
+
+  const dupes = useMemo(() => {
+    if (!plan) return [];
+    const byNopol = new Map<string, number[]>();
+    for (const r of plan.rows) byNopol.set(r.nopol, [...(byNopol.get(r.nopol) ?? []), r.line]);
+    return [...byNopol].filter(([, lines]) => lines.length > 1).sort((a, b) => b[1].length - a[1].length);
+  }, [plan]);
 
   async function loadSheet(name: string) {
     const XLSX = await import("xlsx");
@@ -74,37 +81,37 @@ export default function VehicleImporter() {
   }
 
   function clearFile() {
-  workbook.current = null;
-  setFileName("");
-  setSheets([]);
-  setSheet("");
-  setParsed(null);
-  setParseError(null);
-  setError(null);
-  setResult(null);
-}
+    workbook.current = null;
+    setFileName("");
+    setSheets([]);
+    setSheet("");
+    setParsed(null);
+    setParseError(null);
+    setError(null);
+  }
 
   function handleImport() {
-  if (!parsed) return;
-  setError(null);
-  startTransition(async () => {
-    const res = await importVehicles({ rows: parsed.rows, mode, fileName, sheetName: sheet });
-    if (res.ok) {
-      clearFile();
-      setResult(res.data);
-    } else {
-      setError(res.error);
-    }
-  });
-}
+    if (!parsed) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await importVehicles({ rows: parsed.rows, mode, fileName, sheetName: sheet });
+      if (res.ok) {
+        clearFile();
+        setResult(res.data);
+      } else {
+        setError(res.error);
+      }
+    });
+  }
 
   return (
     <div className="stack">
       {result && (
         <div role="status" className="card">
           <b>
-            {result.inserted} kendaraan baru, {result.updated} diperbarui
-            {result.skipped > 0 && `, ${result.skipped} dilewati`}.
+            {result.inserted} baris disimpan
+            {result.updated > 0 && `, ${result.updated} baris lama digantikan`}
+            {result.skipped > 0 && `, ${result.skipped} dilewati (tanpa No. Polisi)`}.
           </b>
           <p className="sub">
             <a href="/kendaraan">Lihat Daftar kendaraan</a>
@@ -169,21 +176,33 @@ export default function VehicleImporter() {
           <section className="card">
             <h3>Pengaturan</h3>
             <label className="check">
-              <input type="radio" name="mode" checked={mode === "update"} onChange={() => setMode("update")} />
-              Perbarui kendaraan yang sudah ada (No. Polisi sama) dan tambahkan yang baru
+              <input type="radio" name="mode" checked={mode === "append"} onChange={() => setMode("append")} />
+              Tambahkan sebagai data baru tanpa menghapus apa pun
             </label>
             <label className="check">
-              <input type="radio" name="mode" checked={mode === "skip"} onChange={() => setMode("skip")} />
-              Lewati kendaraan yang sudah ada, hanya tambahkan yang baru
+              <input type="radio" name="mode" checked={mode === "replace"} onChange={() => setMode("replace")} />
+              Ganti impor sebelumnya dengan file dan sheet yang sama (untuk mengulang upload)
             </label>
           </section>
 
           <section className="card">
-            <h3>Pratinjau: {plan.rows.length} kendaraan</h3>
+            <h3>Pratinjau: {plan.rows.length} baris</h3>
             {plan.withIssues > 0 && (
               <p className="sub">
                 {plan.withIssues} baris punya catatan. Baris tetap diimpor, nilai yang tidak terbaca dikosongkan.
               </p>
+            )}
+
+            {dupes.length > 0 && (
+              <div className="sub">
+                <p>
+                  {dupes.length} No. Polisi muncul lebih dari sekali. Semua baris disimpan sebagai riwayat,
+                  dan baris terakhir yang tampil di daftar. Contoh:
+                </p>
+                {dupes.slice(0, 10).map(([nopol, lines]) => (
+                  <p key={nopol}>{nopol}: baris {lines.join(", ")}</p>
+                ))}
+              </div>
             )}
 
             <div className="tw" style={{ maxHeight: "28rem", overflow: "auto" }}>
@@ -227,7 +246,7 @@ export default function VehicleImporter() {
               disabled={pending || plan.rows.length === 0}
               onClick={handleImport}
             >
-              {pending ? "Mengimpor..." : `Impor ${plan.rows.length} kendaraan`}
+              {pending ? "Mengimpor..." : `Impor ${plan.rows.length} baris`}
             </button>
           </section>
         </>

@@ -1,5 +1,5 @@
 import { getImportLogs } from "@/lib/queries";
-import { Header } from "@/components/ui";
+import Header from "@/components/Header";
 import VehicleImporter from "@/components/KendaraanImporter";
 import DeleteLogButton from "@/components/DeleteLogButton";
 

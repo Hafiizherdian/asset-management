@@ -1,6 +1,7 @@
 import { getVehicles } from "@/lib/queries";
 import { countBy, getAlerts } from "@/lib/kendaraan-utils";
-import { Header, Kpi, StatusBadge, DueBadge, dayMonth } from "@/components/ui";
+import { Kpi, StatusBadge, DueBadge, dayMonth } from "@/components/ui";
+import Header from "@/components/Header";
 
 export const dynamic = "force-dynamic";
 const COLORS = ["var(--g)", "#1ea7fd", "#ffb200", "#5ac800", "#8f6bd8"];
@@ -8,17 +9,29 @@ const COLORS = ["var(--g)", "#1ea7fd", "#ffb200", "#5ac800", "#8f6bd8"];
 export default async function Overview() {
   const vs = await getVehicles();
   const total = vs.length;
-  const aktif = vs.filter((v) => v.aktif).length;
-  const alerts = getAlerts(vs);
-  const perArea = countBy(vs, (v) => v.area);
-  const perFungsi = countBy(vs, (v) => v.fungsi);
-  const latest = [...vs].sort((a, b) => b.created_at.localeCompare(a.created_at)).slice(0, 5);
+  
+  // 1. Buat variabel khusus untuk kendaraan aktif agar mudah dipakai ulang
+  const activeVs = vs.filter((v) => v.aktif);
+  const aktif = activeVs.length;
+  
+  // Jatuh tempo dokumen (alerts) menggunakan data kendaraan aktif
+  const alerts = getAlerts(activeVs);
+  
+  // Kendaraan per area (sudah hanya yang aktif)
+  const perArea = countBy(activeVs, (v) => v.area);
+  
+  // 2. Komposisi kendaraan sekarang HANYA menghitung dari kendaraan aktif
+  const perFungsi = countBy(activeVs, (v) => v.fungsi);
+  
+  // Kendaraan terbaru tetap menampilkan semua data (atau bisa diubah jika ingin aktif saja)
+  const latest = [...vs].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   let acc = 0;
   const gradient = perFungsi
     .map(([, n], i) => {
       const s = acc;
-      acc += (n / (total || 1)) * 100;
+      // 3. Pembagi diubah dari (total) menjadi (aktif) agar persentasenya akurat
+      acc += (n / (aktif || 1)) * 100;
       return `${COLORS[i % 5]} ${s}% ${acc}%`;
     })
     .join(",");
@@ -28,8 +41,6 @@ export default async function Overview() {
     <>
       <Header page="Dashboard" />
       <div className="pg">
-        <h1>Overview</h1>
-
         {total === 0 ? (
           <div className="card">
             <h3>Belum ada data</h3>
@@ -47,21 +58,24 @@ export default async function Overview() {
             <div className="row r2">
               <div className="card">
                 <h3>Kendaraan per area</h3>
-                <div className="sub">Jumlah unit di setiap area</div>
-                {perArea.map(([k, n]) => (
-                  <div className="bar" key={k}>
-                    <span>{k}</span>
-                    <div className="t"><i style={{ width: `${(n / max) * 100}%` }} /></div>
-                    <b>{n}</b>
-                  </div>
-                ))}
+                <div className="sub">Jumlah unit aktif di setiap area</div>
+                <div style={{ maxHeight: "220px", overflowY: "auto", paddingRight: "8px" }}>
+                  {perArea.map(([k, n]) => (
+                    <div className="bar" key={k}>
+                      <span>{k}</span>
+                      <div className="t"><i style={{ width: `${(n / max) * 100}%` }} /></div>
+                      <b>{n}</b>
+                    </div>
+                  ))}
+                </div>
               </div>
               <div className="card">
                 <h3>Komposisi kendaraan</h3>
-                <div className="sub">Berdasarkan fungsi kendaraan</div>
+                <div className="sub">Berdasarkan fungsi kendaraan aktif</div>
                 <div className="donut">
                   <div className="ring" style={{ background: `conic-gradient(${gradient})` }}>
-                    <div><span><b>{total}</b>kendaraan</span></div>
+                    {/* 4. Angka di tengah donat diubah dari total menjadi aktif */}
+                    <div><span><b>{aktif}</b>kendaraan</span></div>
                   </div>
                   <div className="lg">
                     {perFungsi.map(([k, n], i) => (
@@ -75,9 +89,9 @@ export default async function Overview() {
             <div className="row r2">
               <div className="card">
                 <h3>Kendaraan terbaru</h3>
-                <div className="tw">
+                <div className="tw" style={{ maxHeight: "410px", overflowY: "auto" }}>
                   <table>
-                    <thead>
+                    <thead style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--bg, #fff)" }}>
                       <tr><th>Kendaraan</th><th>Fungsi</th><th>Area</th><th>Status</th><th>Tahun</th></tr>
                     </thead>
                     <tbody>

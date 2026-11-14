@@ -11,7 +11,7 @@ export default function DeleteLogButton({ id, fileName }: { id: string; fileName
       className="s"
       disabled={pending}
       onClick={() => {
-        if (!confirm(`Hapus riwayat impor "${fileName}"? Data kendaraan tidak ikut terhapus.`)) return;
+        if (!confirm(`Hapus impor "${fileName}"? Semua data kendaraan dari impor ini ikut terhapus.`)) return;
         start(async () => {
           const res = await deleteImportLog(id);
           if (!res.ok) alert(res.error);

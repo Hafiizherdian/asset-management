@@ -1,6 +1,7 @@
 import { getVehicles } from "@/lib/queries";
 import { fmtDate, getAlerts } from "@/lib/kendaraan-utils";
-import { Header, DueBadge } from "@/components/ui";
+import { DueBadge } from "@/components/ui";
+import Header from "@/components/Header";
 
 export const dynamic = "force-dynamic";
 
@@ -11,9 +12,9 @@ export default async function Service() {
     <>
       <Header page="Dokumen & service" />
       <div className="pg">
-        <h1>Dokumen & service</h1>
+        {/* <h1>Dokumen & service</h1> */}
         <div className="card">
-          <h3>Perlu tindakan</h3>
+          <h3>Dokumen</h3>
           <div className="sub">
             Kendaraan aktif dengan STNK, KEUR, asuransi, SIOP, atau IUAKU lewat tempo / jatuh tempo ≤ 90 hari
           </div>
