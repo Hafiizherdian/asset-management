@@ -57,8 +57,8 @@ export default async function Overview() {
 
             <div className="row r2">
               <div className="card">
-                <h3>Kendaraan per area</h3>
-                <div className="sub">Jumlah unit aktif di setiap area</div>
+                <h3>Jumlah unit aktif di setiap area</h3>
+                {/* <div className="sub">Jumlah unit aktif di setiap area</div> */}
                 <div style={{ maxHeight: "220px", overflowY: "auto", paddingRight: "8px" }}>
                   {perArea.map(([k, n]) => (
                     <div className="bar" key={k}>

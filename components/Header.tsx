@@ -13,7 +13,7 @@ export default async function Header({ page }: { page: string }) {
       </div>
       <div className="ts">
         <ThemeSwitcher />
-        <span>OJOK CEPET CEPET ENGKO NAMBAH KERJOAN</span>
+        <span>OJOK CEPET CEPET ENGKO NAMBAH MANEH KERJOAN</span>
       </div>
     </header>
   );

@@ -55,11 +55,11 @@ create index if not exists vehicles_aktif_idx on vehicles (aktif);
 
 drop view if exists vehicles_current;
 create view vehicles_current as
-select distinct on (v.nopol) v.*
+select v.*
 from vehicles v
-left join import_logs l on l.id = v.import_id
-order by v.nopol,
-         l.created_at desc nulls last,  -- impor terbaru menang
-         v.aktif desc,                  -- di dalam satu impor, baris aktif didahulukan
-         v.line desc nulls last,
-         v.created_at desc;
+where v.import_id is null
+   or v.import_id in (
+     select distinct on (file_name, sheet_name) id
+     from import_logs
+     order by file_name, sheet_name, created_at desc
+   );

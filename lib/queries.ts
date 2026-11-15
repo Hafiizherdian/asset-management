@@ -11,8 +11,8 @@ export async function getAreaFilter(): Promise<string> {
 export async function getVehicles(): Promise<Vehicle[]> {
   const area = await getAreaFilter();
   const { rows } = area
-    ? await pool.query<Vehicle>("select * from vehicles_current where area = $1 order by area, nopol", [area])
-    : await pool.query<Vehicle>("select * from vehicles_current order by area, nopol");
+    ? await pool.query<Vehicle>("select * from vehicles_current where area = $1 order by area, nopol, tahun, no_mesin, no_rangka", [area])
+    : await pool.query<Vehicle>("select * from vehicles_current order by area, nopol, tahun, no_mesin, no_rangka");
   return rows;
 }
 

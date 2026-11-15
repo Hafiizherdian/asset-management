@@ -23,7 +23,7 @@ export default function Sidebar() {
                 priority
                 className="size-8 shrink-0 rounded-md object-contain"
               />Asset<br />Management</div>
-      <small>MENU UTAMA</small>
+      <small>menu</small>
       <Separator className="my-1" />
       {MENU.map((m) => (
         <Link key={m.href} href={m.href} className={p === m.href ? "on" : ""}>{m.label}</Link>

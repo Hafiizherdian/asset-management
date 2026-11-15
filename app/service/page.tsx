@@ -18,16 +18,19 @@ export default async function Service() {
           <div className="sub">
             Kendaraan aktif dengan STNK, KEUR, asuransi, SIOP, atau IUAKU lewat tempo / jatuh tempo ≤ 90 hari
           </div>
-          <div className="tw">
+          <div className="tw" style={{ maxHeight: "560px", overflowY: "auto" }}>
             <table>
               <thead>
-                <tr><th>Kendaraan</th><th>Area</th><th>Dokumen</th><th>Tanggal</th><th>Status</th></tr>
+                <tr><th>Area</th><th>Kendaraan</th><th>Tahun</th><th>NO Mesin</th><th>NO Rangka</th><th>Dokumen</th><th>Tanggal</th><th>Status</th></tr>
               </thead>
               <tbody>
                 {alerts.map((a) => (
                   <tr key={a.v.id + a.dokumen}>
-                    <td>{a.v.merk || "–"}<small>{a.v.nopol}</small></td>
                     <td>{a.v.area}</td>
+                    <td>{a.v.merk || "–"}<small>{a.v.nopol}</small></td>
+                    <td>{a.v.tahun}</td>
+                    <td>{a.v.no_mesin}</td>
+                    <td>{a.v.no_rangka}</td>
                     <td>{a.dokumen}</td>
                     <td>{fmtDate(a.tanggal)}</td>
                     <td><DueBadge days={a.days} /></td>
