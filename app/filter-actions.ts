@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-async function setFilter(name: "area" | "fungsi" | "nopol", raw: string, max: number) {
+async function setFilter(name: "area" | "fungsi" | "nopol" | "tahun", raw: string, max: number) {
   const store = await cookies();
   const value = String(raw ?? "").trim().slice(0, max);
   if (value) {
@@ -24,4 +24,8 @@ export async function setFungsiFilter(fungsi: string) {
 
 export async function setNopolFilter(nopol: string) {
   await setFilter("nopol", nopol, 30);
+}
+
+export async function setTahunFilter(tahun: string) {
+  await setFilter("tahun", tahun, 4);
 }

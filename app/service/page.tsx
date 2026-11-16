@@ -1,47 +1,68 @@
 import { getVehicles } from "@/lib/queries";
-import { fmtDate, getAlerts } from "@/lib/kendaraan-utils";
-import { DueBadge } from "@/components/ui";
+import { daysLeft, fmtDate } from "@/lib/kendaraan-utils";
 import Header from "@/components/Header";
 
 export const dynamic = "force-dynamic";
 
+const COLS = [
+  { label: "STNK", key: "stnk" },
+  { label: "SIOP", key: "siop" },
+  { label: "KEUR", key: "keur" },
+  { label: "IUAKU", key: "iuaku" },
+] as const;
+
 export default async function Service() {
-  const alerts = getAlerts(await getVehicles());
+  const vs = await getVehicles();
+
+  // Semua kendaraan; urut dari dokumen paling mendesak, yang tanpa tanggal di paling bawah
+  const rows = vs
+    .map((v) => ({
+      v,
+      urgent: Math.min(...COLS.map((c) => daysLeft(v[c.key]) ?? Infinity)),
+    }))
+    .sort((a, b) => (a.urgent === b.urgent ? 0 : a.urgent < b.urgent ? -1 : 1));
 
   return (
     <>
       <Header page="Dokumen & service" />
       <div className="pg">
-        {/* <h1>Dokumen & service</h1> */}
         <div className="card">
           <h3>Dokumen</h3>
-          <div className="sub">
-            Kendaraan aktif dengan STNK, KEUR, asuransi, SIOP, atau IUAKU lewat tempo / jatuh tempo ≤ 90 hari
-          </div>
           <div className="tw" style={{ maxHeight: "560px", overflowY: "auto" }}>
             <table>
               <thead>
-                <tr><th>Area</th><th>Kendaraan</th><th>Tahun</th><th>NO Mesin</th><th>NO Rangka</th><th>Dokumen</th><th>Tanggal</th></tr>
+                <tr>
+                  <th>Area</th>
+                  <th>Kendaraan</th>
+                  <th>Tahun</th>
+                  <th>NO Mesin</th>
+                  <th>NO Rangka</th>
+                  {COLS.map((c) => <th key={c.key}>{c.label}</th>)}
+                  {/* <th>Awal Asuransi</th>
+                  <th>Akhir Asuransi</th> */}
+                </tr>
               </thead>
               <tbody>
-                {alerts.map((a) => (
-                  <tr key={a.v.id + a.dokumen}>
-                    <td>{a.v.area}</td>
-                    <td>{a.v.merk || "–"}<small>{a.v.nopol}</small></td>
-                    <td>{a.v.tahun}</td>
-                    <td>{a.v.no_mesin}</td>
-                    <td>{a.v.no_rangka}</td>
-                    <td>{a.dokumen}</td>
-                    <td>{fmtDate(a.tanggal)}</td>
+                {rows.map(({ v }) => (
+                  <tr key={v.id}>
+                    <td>{v.area}</td>
+                    <td>{v.merk || "–"}<small>{v.nopol}</small></td>
+                    <td>{v.tahun ?? "–"}</td>
+                    <td>{v.no_mesin || "–"}</td>
+                    <td>{v.no_rangka || "–"}</td>
+                    {COLS.map((c) => (
+                      <td key={c.key}>{fmtDate(v[c.key])}</td>
+                    ))}
+                    {/* <td>{v.awal_asuransi || "-"}</td>
+                    <td>{v.akhir_asuransi || "-"}</td> */}
                   </tr>
                 ))}
-                {alerts.length === 0 && (
-                  <tr><td colSpan={5} className="sub">Tidak ada dokumen yang perlu tindakan.</td></tr>
+                {rows.length === 0 && (
+                  <tr><td colSpan={11}>Belum ada data kendaraan.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
-          <p className="sub">Biaya dan jadwal service menunggu data service (tanggal, jenis, biaya).</p>
         </div>
       </div>
     </>

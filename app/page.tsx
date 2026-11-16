@@ -49,7 +49,7 @@ export default async function Overview() {
               <Kpi label="Total kendaraan" value={total} />
               <Kpi label="Kendaraan aktif" value={aktif} />
               <Kpi label="Sewa" value={sewa} />
-              {/* <Kpi label="Dokumen perlu perhatian" value={new Set(alerts.map((a) => a.v.id)).size} /> */}
+              {/* <Kpi label="BRK" value={new Set(alerts.map((a) => a.v.id)).size} /> */}
             </div>
 
             <div className="row r2">
@@ -103,7 +103,7 @@ export default async function Overview() {
                 </div>
               </div>
               {/* <div className="card">
-                <h3>Jatuh tempo dokumen</h3>
+                <h3>BRK</h3>
                 <div className="sub">5 paling mendesak</div>
                 {alerts.slice(0, 5).map((a) => {
                   const d = dayMonth(a.tanggal);

@@ -6,7 +6,7 @@ import type { ImportLogRow, Vehicle, VehicleHistoryRow } from "@/lib/types";
 /** Kendaraan tidak aktif tetap tersimpan di database, tapi tidak ditampilkan di aplikasi. */
 const VISIBLE = "status <> 'tidak_aktif'";
 
-export type Filters = { area: string; fungsi: string; nopol: string };
+export type Filters = { area: string; fungsi: string; nopol: string; tahun: string };
 
 export async function getFilters(): Promise<Filters> {
   const store = await cookies();
@@ -14,17 +14,15 @@ export async function getFilters(): Promise<Filters> {
     area: store.get("area")?.value ?? "",
     fungsi: store.get("fungsi")?.value ?? "",
     nopol: store.get("nopol")?.value ?? "",
+    tahun: store.get("tahun")?.value ?? "",
   };
 }
 
-/** "n-1491 hi" -> "N1491HI", supaya pencarian tidak peduli spasi atau tanda "-". */
-const squash = (s: string) => s.toUpperCase().replace(/[^A-Z0-9]/g, "");
-
-/** Kendaraan aktif + sewa, mengikuti filter area, fungsi, dan No. Polisi di header. */
+/** Kendaraan aktif + sewa, mengikuti filter area, fungsi, tahun, dan No. Polisi di header. */
 export async function getVehicles(): Promise<Vehicle[]> {
   const f = await getFilters();
   const where = [VISIBLE];
-  const params: string[] = [];
+  const params: (string | number)[] = [];
 
   if (f.area) {
     params.push(f.area);
@@ -34,10 +32,13 @@ export async function getVehicles(): Promise<Vehicle[]> {
     params.push(f.fungsi);
     where.push(`fungsi = $${params.length}`);
   }
-  const q = squash(f.nopol);
-  if (q) {
-    params.push(`%${q}%`);
-    where.push(`regexp_replace(upper(nopol), '[^A-Z0-9]', '', 'g') like $${params.length}`);
+  if (/^\d{4}$/.test(f.tahun)) {
+    params.push(Number(f.tahun));
+    where.push(`tahun = $${params.length}`);
+  }
+  if (f.nopol) {
+    params.push(f.nopol);
+    where.push(`nopol = $${params.length}`);
   }
 
   const { rows } = await pool.query<Vehicle>(
@@ -67,6 +68,26 @@ export async function getFungsiOptions(): Promise<string[]> {
      order by fungsi`,
   );
   return rows.map((r) => r.fungsi);
+}
+
+/** Daftar tahun untuk dropdown header (tidak terfilter), terbaru dulu. */
+export async function getTahunOptions(): Promise<number[]> {
+  const { rows } = await pool.query<{ tahun: number }>(
+    `select distinct tahun from vehicles_current
+     where ${VISIBLE} and tahun is not null
+     order by tahun desc`,
+  );
+  return rows.map((r) => r.tahun);
+}
+
+/** Daftar No. Polisi untuk dropdown header (tidak terfilter). */
+export async function getNopolOptions(): Promise<string[]> {
+  const { rows } = await pool.query<{ nopol: string }>(
+    `select distinct nopol from vehicles_current
+     where ${VISIBLE} and coalesce(trim(nopol), '') <> ''
+     order by nopol`,
+  );
+  return rows.map((r) => r.nopol);
 }
 
 /** Semua baris satu No. Polisi (riwayat), terbaru dulu. */

@@ -1,28 +1,28 @@
 "use client";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { setNopolFilter } from "@/app/filter-actions";
 
-export default function NopolFilter({ selected }: { selected: string }) {
-  const [value, setValue] = useState(selected);
-  const [, start] = useTransition();
-
-  useEffect(() => {
-    if (value.trim() === selected) return;
-    const timer = setTimeout(() => {
-      start(async () => {
-        await setNopolFilter(value);
-      });
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [value, selected]);
+export default function NopolFilter({ options, selected }: { options: string[]; selected: string }) {
+  const [current, setCurrent] = useState(selected);
+  const [pending, start] = useTransition();
 
   return (
-    <input
-      type="search"
-      aria-label="Cari No. Polisi"
-      placeholder="Cari No. Polisi"
-      value={value}
-      onChange={(e) => setValue(e.target.value)}
-    />
+    <select
+      aria-label="Filter No. Polisi"
+      value={current}
+      disabled={pending}
+      onChange={(e) => {
+        const next = e.target.value;
+        setCurrent(next);
+        start(async () => {
+          await setNopolFilter(next);
+        });
+      }}
+    >
+      <option value="">Semua Nopol</option>
+      {options.map((x) => (
+        <option key={x} value={x}>{x}</option>
+      ))}
+    </select>
   );
 }
