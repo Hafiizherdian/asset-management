@@ -1,36 +1,33 @@
 import { getVehicles } from "@/lib/queries";
 import { countBy, getAlerts } from "@/lib/kendaraan-utils";
-import { Kpi, StatusBadge, DueBadge, dayMonth } from "@/components/ui";
+import { Kpi, DueBadge, dayMonth } from "@/components/ui";
 import Header from "@/components/Header";
 
 export const dynamic = "force-dynamic";
 const COLORS = ["var(--g)", "#1ea7fd", "#ffb200", "#5ac800", "#8f6bd8"];
 
 export default async function Overview() {
+  // getVehicles() sudah menyembunyikan kendaraan tidak aktif, jadi isinya aktif + sewa
   const vs = await getVehicles();
   const total = vs.length;
-  
-  // 1. Buat variabel khusus untuk kendaraan aktif agar mudah dipakai ulang
-  const activeVs = vs.filter((v) => v.aktif);
+
+  const activeVs = vs.filter((v) => v.status === "aktif");
   const aktif = activeVs.length;
-  
-  // Jatuh tempo dokumen (alerts) menggunakan data kendaraan aktif
+  const sewa = vs.filter((v) => v.status === "sewa").length;
+
+  // Jatuh tempo dokumen menggunakan data kendaraan aktif
   const alerts = getAlerts(activeVs);
-  
-  // Kendaraan per area (sudah hanya yang aktif)
+
+  // Kendaraan per area dan komposisi fungsi: hanya yang aktif
   const perArea = countBy(activeVs, (v) => v.area);
-  
-  // 2. Komposisi kendaraan sekarang HANYA menghitung dari kendaraan aktif
   const perFungsi = countBy(activeVs, (v) => v.fungsi);
-  
-  // Kendaraan terbaru tetap menampilkan semua data (atau bisa diubah jika ingin aktif saja)
+
   const latest = [...vs].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   let acc = 0;
   const gradient = perFungsi
     .map(([, n], i) => {
       const s = acc;
-      // 3. Pembagi diubah dari (total) menjadi (aktif) agar persentasenya akurat
       acc += (n / (aktif || 1)) * 100;
       return `${COLORS[i % 5]} ${s}% ${acc}%`;
     })
@@ -51,14 +48,13 @@ export default async function Overview() {
             <div className="row k4">
               <Kpi label="Total kendaraan" value={total} />
               <Kpi label="Kendaraan aktif" value={aktif} />
-              <Kpi label="Tidak aktif" value={total - aktif} />
-              <Kpi label="Dokumen perlu perhatian" value={new Set(alerts.map((a) => a.v.id)).size} />
+              <Kpi label="Sewa" value={sewa} />
+              {/* <Kpi label="Dokumen perlu perhatian" value={new Set(alerts.map((a) => a.v.id)).size} /> */}
             </div>
 
             <div className="row r2">
               <div className="card">
                 <h3>Jumlah unit aktif di setiap area</h3>
-                {/* <div className="sub">Jumlah unit aktif di setiap area</div> */}
                 <div style={{ maxHeight: "220px", overflowY: "auto", paddingRight: "8px" }}>
                   {perArea.map(([k, n]) => (
                     <div className="bar" key={k}>
@@ -74,7 +70,6 @@ export default async function Overview() {
                 <div className="sub">Berdasarkan fungsi kendaraan aktif</div>
                 <div className="donut">
                   <div className="ring" style={{ background: `conic-gradient(${gradient})` }}>
-                    {/* 4. Angka di tengah donat diubah dari total menjadi aktif */}
                     <div><span><b>{aktif}</b>kendaraan</span></div>
                   </div>
                   <div className="lg">
@@ -92,7 +87,7 @@ export default async function Overview() {
                 <div className="tw" style={{ maxHeight: "410px", overflowY: "auto" }}>
                   <table>
                     <thead style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--bg, #fff)" }}>
-                      <tr><th>Kendaraan</th><th>Fungsi</th><th>Area</th><th>Status</th><th>Tahun</th></tr>
+                      <tr><th>Kendaraan</th><th>Fungsi</th><th>Area</th><th>Tahun</th></tr>
                     </thead>
                     <tbody>
                       {latest.map((v) => (
@@ -100,7 +95,6 @@ export default async function Overview() {
                           <td>{v.merk || "–"}<small>{v.nopol}</small></td>
                           <td>{v.fungsi || "–"}</td>
                           <td>{v.area}</td>
-                          <td><StatusBadge aktif={v.aktif} /></td>
                           <td>{v.tahun ?? "–"}</td>
                         </tr>
                       ))}
@@ -108,7 +102,7 @@ export default async function Overview() {
                   </table>
                 </div>
               </div>
-              <div className="card">
+              {/* <div className="card">
                 <h3>Jatuh tempo dokumen</h3>
                 <div className="sub">5 paling mendesak</div>
                 {alerts.slice(0, 5).map((a) => {
@@ -124,7 +118,7 @@ export default async function Overview() {
                   );
                 })}
                 {alerts.length === 0 && <p className="sub">Tidak ada dokumen jatuh tempo.</p>}
-              </div>
+              </div> */}
             </div>
           </>
         )}

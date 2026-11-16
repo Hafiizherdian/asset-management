@@ -16,7 +16,7 @@ type Result = { ok: true; data: ImportSummary } | { ok: false; error: string };
 
 /** Kolom tabel dan tipe SQL-nya, dipakai untuk menyusun INSERT ... jsonb_to_recordset. */
 const COLS: [string, string][] = [
-  ["area", "text"], ["aktif", "boolean"], ["kode", "int"], ["nopol", "text"], ["no_mesin", "text"],
+  ["area", "text"], ["status", "text"], ["kode", "int"], ["nopol", "text"], ["no_mesin", "text"],
   ["no_rangka", "text"], ["merk", "text"], ["warna", "text"], ["tahun", "int"], ["catatan", "text"],
   ["stnk", "date"], ["siop", "date"], ["keur", "date"], ["iuaku", "date"], ["area_cover", "text"],
   ["fungsi", "text"], ["harga_perolehan", "numeric"], ["tgl_perolehan", "date"],

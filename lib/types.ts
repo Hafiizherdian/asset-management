@@ -1,9 +1,17 @@
+export type VehicleStatus = "aktif" | "tidak_aktif" | "sewa";
+
+export const STATUS_LABEL: Record<VehicleStatus, string> = {
+  aktif: "Aktif",
+  tidak_aktif: "Tidak aktif",
+  sewa: "Sewa",
+};
+
 export type Vehicle = {
   id: string;
   import_id: string | null;
   line: number | null;
   area: string;
-  aktif: boolean;
+  status: VehicleStatus;
   kode: number | null;
   nopol: string;
   no_mesin: string | null;

@@ -16,7 +16,7 @@ create table if not exists vehicles (
   import_id        uuid references import_logs(id) on delete cascade,
   line             int,
   area             text not null,
-  aktif            boolean not null default true,
+  status           text not null default 'aktif' check (status in ('aktif','tidak_aktif','sewa')),
   kode             int,
   nopol            text not null,
   no_mesin         text,
@@ -46,14 +46,30 @@ create table if not exists vehicles (
 alter table vehicles add column if not exists import_id uuid references import_logs(id) on delete cascade;
 alter table vehicles add column if not exists line int;
 
+-- View dibuang dulu karena bergantung pada kolom "aktif" yang akan diganti
+drop view if exists vehicles_current;
+
+-- Migrasi database lama: aktif (boolean) -> status (text). Data lama tetap aman.
+do $$
+begin
+  if exists (select 1 from information_schema.columns
+             where table_name = 'vehicles' and column_name = 'aktif') then
+    alter table vehicles
+      add column if not exists status text not null default 'aktif'
+      check (status in ('aktif','tidak_aktif','sewa'));
+    update vehicles set status = case when aktif then 'aktif' else 'tidak_aktif' end;
+    alter table vehicles drop column aktif;
+  end if;
+end $$;
+
 drop index if exists vehicles_nopol_key;
+drop index if exists vehicles_aktif_idx;
 create index if not exists vehicles_nopol_idx on vehicles (nopol);
 create index if not exists vehicles_import_idx on vehicles (import_id);
 create index if not exists vehicles_area_idx on vehicles (area);
 create index if not exists vehicles_fungsi_idx on vehicles (fungsi);
-create index if not exists vehicles_aktif_idx on vehicles (aktif);
+create index if not exists vehicles_status_idx on vehicles (status);
 
-drop view if exists vehicles_current;
 create view vehicles_current as
 select v.*
 from vehicles v

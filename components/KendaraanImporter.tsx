@@ -12,6 +12,7 @@ import {
   type ImportSummary,
   type ParsedGrid,
 } from "@/lib/import-parse";
+import { STATUS_LABEL } from "@/lib/types";
 
 const PREVIEW_LIMIT = 100;
 
@@ -222,7 +223,7 @@ export default function VehicleImporter() {
                       <td>{r.area}</td>
                       <td>{r.merk || "–"}</td>
                       <td>{r.tahun ?? "–"}</td>
-                      <td>{r.aktif ? "Aktif" : "Tidak aktif"}</td>
+                      <td>{STATUS_LABEL[r.status]}</td>
                       <td>{r.fungsi || "–"}</td>
                       <td>{r.stnk ?? "–"}</td>
                       <td>{r.keur ?? "–"}</td>

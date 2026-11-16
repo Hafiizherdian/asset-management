@@ -21,7 +21,7 @@ export default async function Service() {
           <div className="tw" style={{ maxHeight: "560px", overflowY: "auto" }}>
             <table>
               <thead>
-                <tr><th>Area</th><th>Kendaraan</th><th>Tahun</th><th>NO Mesin</th><th>NO Rangka</th><th>Dokumen</th><th>Tanggal</th><th>Status</th></tr>
+                <tr><th>Area</th><th>Kendaraan</th><th>Tahun</th><th>NO Mesin</th><th>NO Rangka</th><th>Dokumen</th><th>Tanggal</th></tr>
               </thead>
               <tbody>
                 {alerts.map((a) => (
@@ -33,7 +33,6 @@ export default async function Service() {
                     <td>{a.v.no_rangka}</td>
                     <td>{a.dokumen}</td>
                     <td>{fmtDate(a.tanggal)}</td>
-                    <td><DueBadge days={a.days} /></td>
                   </tr>
                 ))}
                 {alerts.length === 0 && (

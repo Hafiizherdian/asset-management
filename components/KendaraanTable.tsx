@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
-import { StatusBadge } from "./ui";
+import type { VehicleStatus } from "@/lib/types";
 
 export type VehicleListRow = {
   id: string;
@@ -10,67 +10,53 @@ export type VehicleListRow = {
   tahun: number | null;
   area: string;
   fungsi: string;
-  aktif: boolean;
-  due: { dokumen: string; days: number } | null;
+  status: VehicleStatus;
 };
 
 const PER_PAGE = 10;
-const INIT = { tab: "all", q: "", fungsi: "", page: 1 };
 
 export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] }) {
-  const [f, setF] = useState(INIT);
-  const set = (p: Partial<typeof INIT>) => setF((s) => ({ ...s, page: 1, ...p }));
-  const aktif = vehicles.filter((v) => v.aktif).length;
-  const fungsiOptions = useMemo(
-    () => [...new Set(vehicles.map((v) => v.fungsi))].filter(Boolean).sort(),
-    [vehicles],
-  );
+  const [tab, setTab] = useState("all");
+  const [pageNo, setPageNo] = useState(1);
 
   const rows = useMemo(
-    () =>
-      vehicles.filter(
-        (v) =>
-          (f.tab === "all" || (f.tab === "a" ? v.aktif : !v.aktif)) &&
-          (!f.fungsi || v.fungsi === f.fungsi) &&
-          `${v.nopol} ${v.merk}`.toLowerCase().includes(f.q.toLowerCase()),
-      ),
-    [vehicles, f],
+    () => vehicles.filter((v) => tab === "all" || v.status === tab),
+    [vehicles, tab],
   );
+
   const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE));
-  const page = Math.min(f.page, pages);
+  const page = Math.min(pageNo, pages);
   const start = (page - 1) * PER_PAGE;
 
+  const count = (s: VehicleStatus) => vehicles.filter((v) => v.status === s).length;
   const tabs: [string, string, number][] = [
     ["all", "Semua kendaraan", vehicles.length],
-    ["a", "Aktif", aktif],
-    ["n", "Tidak aktif", vehicles.length - aktif],
+    ["aktif", "Aktif", count("aktif")],
+    ["sewa", "Sewa", count("sewa")],
   ];
 
   return (
     <div className="card">
       <div className="tabs">
         {tabs.map(([k, l, c]) => (
-          <button key={k} className={f.tab === k ? "on" : ""} onClick={() => set({ tab: k })}>
+          <button
+            key={k}
+            className={tab === k ? "on" : ""}
+            onClick={() => {
+              setTab(k);
+              setPageNo(1);
+            }}
+          >
             {l} ({c})
           </button>
         ))}
-      </div>
-
-      <div className="fl">
-        <input placeholder="Cari merk atau nomor polisi" value={f.q} onChange={(e) => set({ q: e.target.value })} />
-        <select value={f.fungsi} onChange={(e) => set({ fungsi: e.target.value })}>
-          <option value="">Semua fungsi</option>
-          {fungsiOptions.map((x) => <option key={x}>{x}</option>)}
-        </select>
-        <button className="s" onClick={() => setF(INIT)}>Reset filter</button>
       </div>
 
       <div className="tw">
         <table>
           <thead>
             <tr>
-              <th>Kendaraan</th><th>No. polisi</th><th>Fungsi</th><th>Area</th>
-              <th>Status</th><th>Tahun</th><th>Dokumen</th>
+              <th>Kendaraan</th><th>No. polisi</th><th>Fungsi</th><th>Area</th><th>Tahun</th>
             </tr>
           </thead>
           <tbody>
@@ -80,21 +66,11 @@ export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] 
                 <td>{v.nopol}</td>
                 <td>{v.fungsi || "–"}</td>
                 <td>{v.area}</td>
-                <td><StatusBadge aktif={v.aktif} /></td>
                 <td>{v.tahun ?? "–"}</td>
-                <td>
-                  {!v.aktif ? <span className="sub">–</span> : v.due ? (
-                    <span className={`b ${v.due.days < 0 ? "er" : "wr"}`}>
-                      {v.due.dokumen} {v.due.days < 0 ? `lewat ${-v.due.days} hari` : `${v.due.days} hari lagi`}
-                    </span>
-                  ) : (
-                    <span className="b ok">Aman</span>
-                  )}
-                </td>
               </tr>
             ))}
             {rows.length === 0 && (
-              <tr><td colSpan={7} className="sub">Tidak ada kendaraan yang cocok. Ubah atau reset filter.</td></tr>
+              <tr><td colSpan={5} className="sub">Tidak ada kendaraan yang cocok. Ubah filter di atas.</td></tr>
             )}
           </tbody>
         </table>
@@ -105,8 +81,8 @@ export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] 
           Menampilkan {rows.length ? start + 1 : 0}–{Math.min(start + PER_PAGE, rows.length)} dari {rows.length} kendaraan
         </span>
         <div>
-          <button className="s" disabled={page < 2} onClick={() => setF({ ...f, page: page - 1 })}>Sebelumnya</button>
-          <button className="s" disabled={page >= pages} onClick={() => setF({ ...f, page: page + 1 })}>Berikutnya</button>
+          <button className="s" disabled={page < 2} onClick={() => setPageNo(page - 1)}>Sebelumnya</button>
+          <button className="s" disabled={page >= pages} onClick={() => setPageNo(page + 1)}>Berikutnya</button>
         </div>
       </div>
     </div>

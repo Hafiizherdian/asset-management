@@ -20,6 +20,7 @@ header b{color:var(--tx);font-weight:500}
 .ts{display:flex;gap:12px;align-items:center}
 .hl{display:flex;gap:14px;align-items:center;flex-wrap:wrap;min-width:0}
 .hl select{padding:6px 10px;max-width:220px}
+.hl input{padding:6px 10px;width:170px}
 .pg{padding:28px}
 h1{font-size:28px;font-weight:500;margin:0 0 24px}
 .stack{display:grid;gap:16px}

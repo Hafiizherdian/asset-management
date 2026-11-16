@@ -2,6 +2,7 @@
  * Membaca data spreadsheet kendaraan menjadi baris siap simpan.
  * Murni (tanpa server-only) supaya bisa dipakai di browser dan di server.
  */
+import type { VehicleStatus } from "@/lib/types";
 
 export const IMPORT_FIELDS = [
   "area", "status", "kode", "nopol", "no_mesin", "no_rangka", "merk", "warna", "tahun", "catatan",
@@ -196,7 +197,7 @@ export function parseImportDate(input: string): string | null {
 export interface ImportRow {
   line: number;
   area: string;
-  aktif: boolean;
+  status: VehicleStatus;
   kode: number | null;
   nopol: string;
   no_mesin: string;
@@ -271,9 +272,14 @@ export function planImport(allRaw: RawImportRow[]): ImportPlan {
     const area = clean(r.area, 100);
     if (!area) issues.push("Area kosong, disimpan sebagai Tanpa area");
 
+    // Status: aktif | tidak aktif | sewa
     const statusRaw = clean(r.status, 30).toLowerCase();
     if (!statusRaw) issues.push("Status kosong, dianggap aktif");
-    const aktif = !/^(tidak|non|0|false|no)/.test(statusRaw);
+    const status: VehicleStatus = /^(di)?sewa/.test(statusRaw)
+      ? "sewa"
+      : /^(tidak|non|0|false|no)/.test(statusRaw)
+        ? "tidak_aktif"
+        : "aktif";
 
     const tahunRaw = clean(r.tahun, 10);
     const tahun = toInt(tahunRaw, 1950, 2100);
@@ -282,7 +288,7 @@ export function planImport(allRaw: RawImportRow[]): ImportPlan {
     return {
       line: r.line,
       area: area || "Tanpa area",
-      aktif,
+      status,
       kode: toInt(clean(r.kode, 10), 0, 1_000_000),
       nopol,
       no_mesin: clean(r.no_mesin, 100),

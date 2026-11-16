@@ -35,11 +35,11 @@ export function fmtDate(iso: string | null) {
 
 export type Alert = { v: Vehicle; dokumen: string; tanggal: string; days: number };
 
-/** Kendaraan aktif dengan dokumen lewat tempo atau jatuh tempo dalam `windowDays` hari. */
+/** Kendaraan (selain tidak aktif) dengan dokumen lewat tempo atau jatuh tempo dalam `windowDays` hari. */
 export function getAlerts(vs: Vehicle[], windowDays = 90): Alert[] {
   const out: Alert[] = [];
   for (const v of vs) {
-    if (!v.aktif) continue;
+    if (v.status === "tidak_aktif") continue;
     for (const doc of DOCS) {
       const tanggal = v[doc.key];
       const days = daysLeft(tanggal);
