@@ -56,16 +56,17 @@ export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] 
         <table>
           <thead>
             <tr>
-              <th>Kendaraan</th><th>No. polisi</th><th>Fungsi</th><th>Area</th><th>Tahun</th>
+              <th>Area</th><th>Kendaraan</th><th>No. polisi</th><th>Fungsi</th><th>Tahun</th>
             </tr>
           </thead>
           <tbody>
             {rows.slice(start, start + PER_PAGE).map((v) => (
               <tr key={v.id}>
+                <td>{v.area}</td>
                 <td>{v.merk || "–"}<small>{v.warna}</small></td>
                 <td>{v.nopol}</td>
                 <td>{v.fungsi || "–"}</td>
-                <td>{v.area}</td>
+                
                 <td>{v.tahun ?? "–"}</td>
               </tr>
             ))}

@@ -8,10 +8,11 @@ export default async function Daftar() {
   const rows = (await getVehicles()).map((v) => ({
     id: v.id,
     nopol: v.nopol,
+    area: v.area,
     merk: v.merk ?? "",
     warna: v.warna ?? "",
     tahun: v.tahun,
-    area: v.area,
+    
     fungsi: v.fungsi ?? "",
     status: v.status,
   }));

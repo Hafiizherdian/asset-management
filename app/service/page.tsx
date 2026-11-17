@@ -14,14 +14,6 @@ const COLS = [
 export default async function Service() {
   const vs = await getVehicles();
 
-  // Semua kendaraan; urut dari dokumen paling mendesak, yang tanpa tanggal di paling bawah
-  const rows = vs
-    .map((v) => ({
-      v,
-      urgent: Math.min(...COLS.map((c) => daysLeft(v[c.key]) ?? Infinity)),
-    }))
-    .sort((a, b) => (a.urgent === b.urgent ? 0 : a.urgent < b.urgent ? -1 : 1));
-
   return (
     <>
       <Header page="Dokumen & service" />
@@ -38,12 +30,10 @@ export default async function Service() {
                   <th>NO Mesin</th>
                   <th>NO Rangka</th>
                   {COLS.map((c) => <th key={c.key}>{c.label}</th>)}
-                  {/* <th>Awal Asuransi</th>
-                  <th>Akhir Asuransi</th> */}
                 </tr>
               </thead>
               <tbody>
-                {rows.map(({ v }) => (
+                {vs.map((v) => (
                   <tr key={v.id}>
                     <td>{v.area}</td>
                     <td>{v.merk || "–"}<small>{v.nopol}</small></td>
@@ -53,12 +43,10 @@ export default async function Service() {
                     {COLS.map((c) => (
                       <td key={c.key}>{fmtDate(v[c.key])}</td>
                     ))}
-                    {/* <td>{v.awal_asuransi || "-"}</td>
-                    <td>{v.akhir_asuransi || "-"}</td> */}
                   </tr>
                 ))}
-                {rows.length === 0 && (
-                  <tr><td colSpan={11}>Belum ada data kendaraan.</td></tr>
+                {vs.length === 0 && (
+                  <tr><td colSpan={9}>Belum ada data kendaraan.</td></tr>
                 )}
               </tbody>
             </table>
