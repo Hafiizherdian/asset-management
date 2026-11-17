@@ -10,9 +10,8 @@ export default async function Daftar() {
     nopol: v.nopol,
     area: v.area,
     merk: v.merk ?? "",
-    warna: v.warna ?? "",
     tahun: v.tahun,
-    
+    warna: v.warna ?? "",
     fungsi: v.fungsi ?? "",
     status: v.status,
   }));

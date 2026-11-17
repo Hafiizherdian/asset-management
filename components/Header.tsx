@@ -6,18 +6,17 @@ import NopolFilter from "./NopolFilter";
 import {
   getAreaOptions,
   getFilters,
-  getFungsiOptions,
   getNopolOptions,
   getTahunOptions,
 } from "@/lib/queries";
 
 export default async function Header({ page }: { page: string }) {
-  const [areas, fungsi, tahun, nopol, filters] = await Promise.all([
+  const filters = await getFilters();
+  // Tahun (dari data BRK) dan No. Polisi mengikuti area yang dipilih
+  const [areas, tahun, nopol] = await Promise.all([
     getAreaOptions(),
-    getFungsiOptions(),
-    getTahunOptions(),
-    getNopolOptions(),
-    getFilters(),
+    getTahunOptions(filters.area),
+    getNopolOptions(filters.area),
   ]);
 
   return (
@@ -26,8 +25,9 @@ export default async function Header({ page }: { page: string }) {
         {/* <span>Asset Management › <b>{page}</b></span> */}
         <AreaFilter areas={areas} selected={filters.area} />
         {/* <FungsiFilter options={fungsi} selected={filters.fungsi} /> */}
-        <TahunFilter options={tahun} selected={filters.tahun} />
-        <NopolFilter options={nopol} selected={filters.nopol} />
+        {/* key = area: dropdown ikut ter-reset saat area berganti */}
+        <TahunFilter key={`t-${filters.area}`} options={tahun} selected={filters.tahun} />
+        <NopolFilter key={`n-${filters.area}`} options={nopol} selected={filters.nopol} />
       </div>
       <div className="ts">
         <ThemeSwitcher />

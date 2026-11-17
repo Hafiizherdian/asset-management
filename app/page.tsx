@@ -1,7 +1,13 @@
-import { getVehicles } from "@/lib/queries";
+import { getVehicles, getBrkSummary } from "@/lib/queries";
 import { countBy, getAlerts } from "@/lib/kendaraan-utils";
 import { Kpi, DueBadge, dayMonth } from "@/components/ui";
 import Header from "@/components/Header";
+
+const rupiah = new Intl.NumberFormat("id-ID", {
+  style: "currency",
+  currency: "IDR",
+  maximumFractionDigits: 0,
+});
 
 export const dynamic = "force-dynamic";
 const COLORS = ["var(--g)", "#1ea7fd", "#ffb200", "#5ac800", "#8f6bd8"];
@@ -9,6 +15,7 @@ const COLORS = ["var(--g)", "#1ea7fd", "#ffb200", "#5ac800", "#8f6bd8"];
 export default async function Overview() {
   // getVehicles() sudah menyembunyikan kendaraan tidak aktif, jadi isinya aktif + sewa
   const vs = await getVehicles();
+  const brk = await getBrkSummary();
   const total = vs.length;
 
   const activeVs = vs.filter((v) => v.status === "aktif");
@@ -49,6 +56,7 @@ export default async function Overview() {
               <Kpi label="Total kendaraan" value={total} />
               <Kpi label="Kendaraan aktif" value={aktif} />
               <Kpi label="Sewa" value={sewa} />
+              <Kpi label="Total biaya" value={rupiah.format(brk.total)} />
               {/* <Kpi label="BRK" value={new Set(alerts.map((a) => a.v.id)).size} /> */}
             </div>
 
@@ -87,15 +95,16 @@ export default async function Overview() {
                 <div className="tw" style={{ maxHeight: "410px", overflowY: "auto" }}>
                   <table>
                     <thead style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--bg, #fff)" }}>
-                      <tr><th>Kendaraan</th><th>Fungsi</th><th>Area</th><th>Tahun</th></tr>
+                      <tr><th>Area</th><th>Kendaraan</th><th>Tahun</th><th>Nopol</th><th>Fungsi</th></tr>
                     </thead>
                     <tbody>
                       {latest.map((v) => (
                         <tr key={v.id}>
-                          <td>{v.merk || "–"}<small>{v.nopol}</small></td>
-                          <td>{v.fungsi || "–"}</td>
                           <td>{v.area}</td>
+                          <td>{v.merk || "–"}</td>
                           <td>{v.tahun ?? "–"}</td>
+                          <td>{v.nopol ?? "-"}</td>
+                          <td>{v.fungsi || "–"}</td>
                         </tr>
                       ))}
                     </tbody>

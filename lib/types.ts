@@ -42,13 +42,37 @@ export type VehicleHistoryRow = Vehicle & {
   imported_at: string | null;
 };
 
+export type ImportKind = "kendaraan" | "brk";
+
 export type ImportLogRow = {
   id: string;
+  kind: ImportKind;
   file_name: string;
   sheet_name: string | null;
   total_rows: number;
   inserted: number;
   updated: number;
   skipped: number;
+  created_at: string;
+};
+
+export type BrkRecord = {
+  id: string;
+  import_id: string | null;
+  line: number | null;
+  area: string;
+  no_bukti: string | null;
+  status: string | null;
+  no_bukti_2: string | null;
+  nopol: string | null;
+  pengaju: string | null;
+  tanggal: string | null;
+  tahun: number | null;
+  bulan: number | null;
+  rekening: string | null;
+  /** numeric dari pg datang sebagai string */
+  jumlah: string | null;
+  keterangan: string | null;
+  operator: string | null;
   created_at: string;
 };

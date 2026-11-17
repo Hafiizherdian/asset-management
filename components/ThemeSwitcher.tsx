@@ -1,6 +1,5 @@
 "use client";
 import { useEffect, useState } from "react";
-import { Switch } from "@heroui/react";
 
 export default function ThemeSwitcher() {
   const [dark, setDark] = useState(false);
@@ -9,23 +8,27 @@ export default function ThemeSwitcher() {
     setDark(document.documentElement.classList.contains("dark"));
   }, []);
 
-  function toggle(next: boolean) {
+  function toggle() {
+    const next = !dark;
     setDark(next);
     const root = document.documentElement;
     const mode = next ? "dark" : "light";
     root.classList.toggle("dark", next);
-    root.dataset.theme = mode; // dibaca HeroUI
+    root.dataset.theme = mode;
     try { localStorage.setItem("mode", mode); } catch {}
   }
 
   return (
     <div className="ts">
       <span aria-hidden>☀</span>
-      <Switch isSelected={dark} onChange={toggle} aria-label="Mode gelap">
-        <Switch.Control>
-          <Switch.Thumb />
-        </Switch.Control>
-      </Switch>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={dark}
+        aria-label="Mode gelap"
+        className="tg"
+        onClick={toggle}
+      />
       <span aria-hidden>☾</span>
     </div>
   );

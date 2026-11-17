@@ -6,7 +6,7 @@ import Sidebar from "@/components/Sidebar";
 const font = Poppins({ subsets: ["latin"], weight: ["400", "500", "600"] });
 export const metadata: Metadata = { title: "Asset Management" };
 
-const themeScript = `(function(){try{var r=document.documentElement;var m=localStorage.getItem("mode");if(!m)m=matchMedia("(prefers-color-scheme:dark)").matches?"dark":"light";r.dataset.theme=m;r.classList.toggle("dark",m==="dark")}catch(e){}})()`;
+const themeScript = `(function(){try{var r=document.documentElement;var m=localStorage.getItem("mode");if(m!=="dark"&&m!=="light")m="light";r.dataset.theme=m;r.classList.toggle("dark",m==="dark")}catch(e){}})()`;
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

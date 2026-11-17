@@ -9,6 +9,9 @@ create table if not exists import_logs (
   created_at  timestamptz not null default now()
 );
 
+-- Jenis impor: 'kendaraan' atau 'brk'
+alter table import_logs add column if not exists kind text not null default 'kendaraan';
+
 create index if not exists import_logs_created_idx on import_logs (created_at desc);
 
 create table if not exists vehicles (
@@ -48,6 +51,7 @@ alter table vehicles add column if not exists line int;
 
 -- View dibuang dulu karena bergantung pada kolom "aktif" yang akan diganti
 drop view if exists vehicles_current;
+drop view if exists brk_current;
 
 -- Migrasi database lama: aktif (boolean) -> status (text). Data lama tetap aman.
 do $$
@@ -70,6 +74,32 @@ create index if not exists vehicles_area_idx on vehicles (area);
 create index if not exists vehicles_fungsi_idx on vehicles (fungsi);
 create index if not exists vehicles_status_idx on vehicles (status);
 
+-- Data BRK (biaya / realisasi kendaraan) dari Excel
+create table if not exists brk_records (
+  id          uuid primary key default gen_random_uuid(),
+  import_id   uuid references import_logs(id) on delete cascade,
+  line        int,
+  area        text not null,
+  no_bukti    text,
+  status      text,
+  no_bukti_2  text,
+  nopol       text,
+  pengaju     text,
+  tanggal     date,
+  tahun       int,
+  bulan       int,
+  rekening    text,
+  jumlah      numeric(16,2),
+  keterangan  text,
+  operator    text,
+  created_at  timestamptz not null default now()
+);
+
+create index if not exists brk_import_idx on brk_records (import_id);
+create index if not exists brk_area_idx on brk_records (area);
+create index if not exists brk_tahun_idx on brk_records (tahun);
+create index if not exists brk_nopol_idx on brk_records (nopol);
+
 create view vehicles_current as
 select v.*
 from vehicles v
@@ -77,5 +107,16 @@ where v.import_id is null
    or v.import_id in (
      select distinct on (file_name, sheet_name) id
      from import_logs
+     where kind = 'kendaraan'
      order by file_name, sheet_name, created_at desc
    );
+
+create view brk_current as
+select b.*
+from brk_records b
+where b.import_id in (
+  select distinct on (file_name, sheet_name) id
+  from import_logs
+  where kind = 'brk'
+  order by file_name, sheet_name, created_at desc
+);

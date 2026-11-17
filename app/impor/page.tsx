@@ -1,6 +1,6 @@
 import { getImportLogs } from "@/lib/queries";
 import Header from "@/components/Header";
-import VehicleImporter from "@/components/KendaraanImporter";
+import ImportTabs from "@/components/ImportTabs";
 import DeleteLogButton from "@/components/DeleteLogButton";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +24,7 @@ export default async function ImportPage() {
       <Header page="Impor data" />
       <div className="pg">
         <h1>Impor data</h1>
-        <VehicleImporter />
+        <ImportTabs />
 
         <div className="card" style={{ marginTop: 16 }}>
           <h3>Riwayat impor</h3>
@@ -33,16 +33,17 @@ export default async function ImportPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Waktu</th><th>File</th><th>Baru</th><th>Diperbarui</th><th>Dilewati</th><th></th>
+                  <th>Waktu</th><th>Jenis</th><th>File</th><th>Baru</th><th>Diperbarui</th><th>Dilewati</th><th></th>
                 </tr>
               </thead>
               <tbody>
                 {logs.length === 0 ? (
-                  <tr><td colSpan={6} className="sub">Belum ada riwayat impor.</td></tr>
+                  <tr><td colSpan={7} className="sub">Belum ada riwayat impor.</td></tr>
                 ) : (
                   logs.map((l) => (
                     <tr key={l.id}>
                       <td>{formatDateTime(l.created_at)}</td>
+                      <td>{l.kind === "brk" ? "BRK" : "Kendaraan"}</td>
                       <td>{l.file_name}{l.sheet_name && <small>Sheet: {l.sheet_name}</small>}</td>
                       <td>{l.inserted}</td>
                       <td>{l.updated}</td>

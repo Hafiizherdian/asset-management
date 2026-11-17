@@ -62,26 +62,28 @@ export async function importVehicles(input: {
     const sheetName = String(input.sheetName ?? "").trim().slice(0, 100) || null;
 
     const summary = await withTransaction(async (client) => {
-      // "replace": buang impor sebelumnya dengan file + sheet yang sama (data kendaraannya ikut terhapus)
+      // "replace": buang impor kendaraan sebelumnya dengan file + sheet yang sama (data kendaraannya ikut terhapus)
       let replaced = 0;
       if (mode === "replace") {
         const old = await client.query<{ count: number }>(
           `select count(*)::int as count from vehicles
            where import_id in (
-             select id from import_logs where file_name = $1 and sheet_name is not distinct from $2::text)`,
+             select id from import_logs
+             where kind = 'kendaraan' and file_name = $1 and sheet_name is not distinct from $2::text)`,
           [fileName, sheetName],
         );
         replaced = old.rows[0].count;
         await client.query(
-          `delete from import_logs where file_name = $1 and sheet_name is not distinct from $2::text`,
+          `delete from import_logs
+           where kind = 'kendaraan' and file_name = $1 and sheet_name is not distinct from $2::text`,
           [fileName, sheetName],
         );
       }
 
       const skipped = raw.length - rows.length;
       const log = await client.query<{ id: string }>(
-        `insert into import_logs (file_name, sheet_name, total_rows, inserted, updated, skipped)
-         values ($1, $2, $3, $4, $5, $6) returning id`,
+        `insert into import_logs (kind, file_name, sheet_name, total_rows, inserted, updated, skipped)
+         values ('kendaraan', $1, $2, $3, $4, $5, $6) returning id`,
         [fileName, sheetName, raw.length, rows.length, replaced, skipped],
       );
 
@@ -103,7 +105,7 @@ export async function importVehicles(input: {
   }
 }
 
-/** Menghapus riwayat impor sekaligus semua data kendaraan dari impor itu (on delete cascade). */
+/** Menghapus riwayat impor sekaligus semua data (kendaraan atau BRK) dari impor itu (on delete cascade). */
 export async function deleteImportLog(id: string): Promise<{ ok: boolean; error?: string }> {
   try {
     if (!/^[0-9a-f-]{36}$/i.test(String(id))) return { ok: false, error: "ID tidak valid" };

@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { pool } from "@/lib/db";
-import type { ImportLogRow, Vehicle, VehicleHistoryRow } from "@/lib/types";
+import type { BrkRecord, ImportLogRow, Vehicle, VehicleHistoryRow } from "@/lib/types";
 
 /** Kendaraan tidak aktif tetap tersimpan di database, tapi tidak ditampilkan di aplikasi. */
 const VISIBLE = "status <> 'tidak_aktif'";
@@ -18,7 +18,10 @@ export async function getFilters(): Promise<Filters> {
   };
 }
 
-/** Kendaraan aktif + sewa, mengikuti filter area, fungsi, tahun, dan No. Polisi di header. */
+/**
+ * Kendaraan aktif + sewa, mengikuti filter area, fungsi, dan No. Polisi di header.
+ * Filter tahun sekarang adalah tahun BRK, jadi tidak dipakai untuk kendaraan.
+ */
 export async function getVehicles(): Promise<Vehicle[]> {
   const f = await getFilters();
   const where = [VISIBLE];
@@ -32,10 +35,6 @@ export async function getVehicles(): Promise<Vehicle[]> {
     params.push(f.fungsi);
     where.push(`fungsi = $${params.length}`);
   }
-  if (/^\d{4}$/.test(f.tahun)) {
-    params.push(Number(f.tahun));
-    where.push(`tahun = $${params.length}`);
-  }
   if (f.nopol) {
     params.push(f.nopol);
     where.push(`nopol = $${params.length}`);
@@ -47,6 +46,62 @@ export async function getVehicles(): Promise<Vehicle[]> {
     params,
   );
   return rows;
+}
+
+/** Data BRK, mengikuti filter area, tahun BRK, dan No. Polisi di header. */
+export async function getBrk(): Promise<BrkRecord[]> {
+  const f = await getFilters();
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (f.area) {
+    params.push(f.area);
+    where.push(`area = $${params.length}`);
+  }
+  if (/^\d{4}$/.test(f.tahun)) {
+    params.push(Number(f.tahun));
+    where.push(`tahun = $${params.length}`);
+  }
+  if (f.nopol) {
+    params.push(f.nopol);
+    where.push(`nopol = $${params.length}`);
+  }
+
+  const { rows } = await pool.query<BrkRecord>(
+    `select * from brk_current
+     ${where.length ? `where ${where.join(" and ")}` : ""}
+     order by tanggal desc nulls last, line desc`,
+    params,
+  );
+  return rows;
+}
+
+/** Ringkasan BRK (jumlah & total biaya), mengikuti filter area, tahun, dan No. Polisi di header. */
+export async function getBrkSummary(): Promise<{ count: number; total: number }> {
+  const f = await getFilters();
+  const where: string[] = [];
+  const params: (string | number)[] = [];
+
+  if (f.area) {
+    params.push(f.area);
+    where.push(`area = $${params.length}`);
+  }
+  if (/^\d{4}$/.test(f.tahun)) {
+    params.push(Number(f.tahun));
+    where.push(`tahun = $${params.length}`);
+  }
+  if (f.nopol) {
+    params.push(f.nopol);
+    where.push(`nopol = $${params.length}`);
+  }
+
+  const { rows } = await pool.query<{ count: number; total: string }>(
+    `select count(*)::int as count, coalesce(sum(jumlah), 0) as total
+     from brk_current
+     ${where.length ? `where ${where.join(" and ")}` : ""}`,
+    params,
+  );
+  return { count: rows[0].count, total: Number(rows[0].total) };
 }
 
 /** Daftar area untuk dropdown header (tidak terfilter). */
@@ -70,22 +125,36 @@ export async function getFungsiOptions(): Promise<string[]> {
   return rows.map((r) => r.fungsi);
 }
 
-/** Daftar tahun untuk dropdown header (tidak terfilter), terbaru dulu. */
-export async function getTahunOptions(): Promise<number[]> {
+/** Tahun yang ada di data BRK, terbaru dulu. Jika `area` diisi, hanya tahun milik area itu. */
+export async function getTahunOptions(area = ""): Promise<number[]> {
+  const params: string[] = [];
+  let extra = "";
+  if (area) {
+    params.push(area);
+    extra = "and area = $1";
+  }
   const { rows } = await pool.query<{ tahun: number }>(
-    `select distinct tahun from vehicles_current
-     where ${VISIBLE} and tahun is not null
+    `select distinct tahun from brk_current
+     where tahun is not null ${extra}
      order by tahun desc`,
+    params,
   );
   return rows.map((r) => r.tahun);
 }
 
-/** Daftar No. Polisi untuk dropdown header (tidak terfilter). */
-export async function getNopolOptions(): Promise<string[]> {
+/** Daftar No. Polisi. Jika `area` diisi, hanya kendaraan di area itu. */
+export async function getNopolOptions(area = ""): Promise<string[]> {
+  const params: string[] = [];
+  let extra = "";
+  if (area) {
+    params.push(area);
+    extra = "and area = $1";
+  }
   const { rows } = await pool.query<{ nopol: string }>(
     `select distinct nopol from vehicles_current
-     where ${VISIBLE} and coalesce(trim(nopol), '') <> ''
+     where ${VISIBLE} and coalesce(trim(nopol), '') <> '' ${extra}
      order by nopol`,
+    params,
   );
   return rows.map((r) => r.nopol);
 }
@@ -104,7 +173,7 @@ export async function getVehicleHistory(nopol: string): Promise<VehicleHistoryRo
 
 export async function getImportLogs(limit = 20): Promise<ImportLogRow[]> {
   const { rows } = await pool.query<ImportLogRow>(
-    `select id, file_name, sheet_name, total_rows, inserted, updated, skipped, created_at
+    `select id, kind, file_name, sheet_name, total_rows, inserted, updated, skipped, created_at
      from import_logs order by created_at desc limit $1`,
     [limit],
   );

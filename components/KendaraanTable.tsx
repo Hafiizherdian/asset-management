@@ -56,7 +56,7 @@ export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] 
         <table>
           <thead>
             <tr>
-              <th>Area</th><th>Kendaraan</th><th>No. polisi</th><th>Fungsi</th><th>Tahun</th>
+              <th>Area</th><th>Kendaraan</th><th>Tahun</th><th>No. polisi</th><th>Fungsi</th>
             </tr>
           </thead>
           <tbody>
@@ -64,10 +64,9 @@ export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] 
               <tr key={v.id}>
                 <td>{v.area}</td>
                 <td>{v.merk || "–"}<small>{v.warna}</small></td>
+                <td>{v.tahun ?? "–"}</td>
                 <td>{v.nopol}</td>
                 <td>{v.fungsi || "–"}</td>
-                
-                <td>{v.tahun ?? "–"}</td>
               </tr>
             ))}
             {rows.length === 0 && (
