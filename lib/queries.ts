@@ -104,6 +104,45 @@ export async function getBrkSummary(): Promise<{ count: number; total: number }>
   return { count: rows[0].count, total: Number(rows[0].total) };
 }
 
+export type BrkYearFungsi = { tahun: number; fungsi: string; total: number };
+
+/**
+ * Total biaya BRK per tahun per fungsi kendaraan (fungsi diambil lewat NOPOL).
+ * Mengikuti filter Area dan No. Polisi. Filter Tahun sengaja tidak dipakai,
+ * karena grafik ini justru membandingkan semua tahun.
+ */
+export async function getBrkByYearFungsi(): Promise<BrkYearFungsi[]> {
+  const f = await getFilters();
+  const where = ["b.tahun is not null"];
+  const params: string[] = [];
+
+  if (f.area) {
+    params.push(f.area);
+    where.push(`b.area = $${params.length}`);
+  }
+  if (f.nopol) {
+    params.push(f.nopol);
+    where.push(`b.nopol = $${params.length}`);
+  }
+
+  const { rows } = await pool.query<{ tahun: number; fungsi: string; total: string }>(
+    `select b.tahun,
+            coalesce(nullif(trim(v.fungsi), ''), 'Lainnya') as fungsi,
+            coalesce(sum(b.jumlah), 0) as total
+     from brk_current b
+     left join (
+       select distinct on (nopol) nopol, fungsi
+       from vehicles_current
+       order by nopol, created_at desc
+     ) v on v.nopol = b.nopol
+     where ${where.join(" and ")}
+     group by 1, 2
+     order by 1, 2`,
+    params,
+  );
+  return rows.map((r) => ({ tahun: r.tahun, fungsi: r.fungsi, total: Number(r.total) }));
+}
+
 /** Daftar area untuk dropdown header (tidak terfilter). */
 export async function getAreaOptions() {
   const { rows } = await pool.query<{ area: string; total: number; aktif: number }>(

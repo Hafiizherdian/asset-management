@@ -31,7 +31,7 @@ export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] 
   const count = (s: VehicleStatus) => vehicles.filter((v) => v.status === s).length;
   const tabs: [string, string, number][] = [
     ["all", "Semua kendaraan", vehicles.length],
-    ["aktif", "Aktif", count("aktif")],
+    ["aktif", "Aset", count("aktif")],
     ["sewa", "Sewa", count("sewa")],
   ];
 
@@ -56,7 +56,7 @@ export default function VehicleTable({ vehicles }: { vehicles: VehicleListRow[] 
         <table>
           <thead>
             <tr>
-              <th>Area</th><th>Kendaraan</th><th>Tahun</th><th>No. polisi</th><th>Fungsi</th>
+              <th>Area</th><th>Kendaraan</th><th>Tahun</th><th>Nopol</th><th>Fungsi</th>
             </tr>
           </thead>
           <tbody>

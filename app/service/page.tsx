@@ -27,6 +27,7 @@ export default async function Service() {
                   <th>Area</th>
                   <th>Kendaraan</th>
                   <th>Tahun</th>
+                  <th>Nopol</th>
                   <th>NO Mesin</th>
                   <th>NO Rangka</th>
                   {COLS.map((c) => <th key={c.key}>{c.label}</th>)}
@@ -36,8 +37,9 @@ export default async function Service() {
                 {vs.map((v) => (
                   <tr key={v.id}>
                     <td>{v.area}</td>
-                    <td>{v.merk || "–"}<small>{v.nopol}</small></td>
+                    <td>{v.merk || "–"}</td>
                     <td>{v.tahun ?? "–"}</td>
+                    <td>{v.nopol || "-"}</td>
                     <td>{v.no_mesin || "–"}</td>
                     <td>{v.no_rangka || "–"}</td>
                     {COLS.map((c) => (

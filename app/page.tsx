@@ -1,7 +1,8 @@
-import { getVehicles, getBrkSummary } from "@/lib/queries";
+import { getVehicles, getBrkSummary, getBrkByYearFungsi} from "@/lib/queries";
 import { countBy, getAlerts } from "@/lib/kendaraan-utils";
 import { Kpi, DueBadge, dayMonth } from "@/components/ui";
 import Header from "@/components/Header";
+import BrkYearChart from "@/components/BrkYearChart";
 
 const rupiah = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -16,6 +17,7 @@ export default async function Overview() {
   // getVehicles() sudah menyembunyikan kendaraan tidak aktif, jadi isinya aktif + sewa
   const vs = await getVehicles();
   const brk = await getBrkSummary();
+  const brkChart = await getBrkByYearFungsi();
   const total = vs.length;
 
   const activeVs = vs.filter((v) => v.status === "aktif");
@@ -54,7 +56,7 @@ export default async function Overview() {
           <>
             <div className="row k4">
               <Kpi label="Total kendaraan" value={total} />
-              <Kpi label="Kendaraan aktif" value={aktif} />
+              <Kpi label="Kendaraan aset" value={aktif} />
               <Kpi label="Sewa" value={sewa} />
               <Kpi label="Total biaya" value={rupiah.format(brk.total)} />
               {/* <Kpi label="BRK" value={new Set(alerts.map((a) => a.v.id)).size} /> */}
@@ -75,7 +77,7 @@ export default async function Overview() {
               </div>
               <div className="card">
                 <h3>Komposisi kendaraan</h3>
-                <div className="sub">Berdasarkan fungsi kendaraan aktif</div>
+                <div className="sub">Berdasarkan fungsi kendaraan</div>
                 <div className="donut">
                   <div className="ring" style={{ background: `conic-gradient(${gradient})` }}>
                     <div><span><b>{aktif}</b>kendaraan</span></div>
@@ -110,6 +112,11 @@ export default async function Overview() {
                     </tbody>
                   </table>
                 </div>
+              </div>
+              <div className="card" style={{ marginBottom: 16 }}>
+                <h3>Biaya perbaikan per tahun</h3>
+                <div className="sub">Total biaya per fungsi kendaraan</div>
+                <BrkYearChart data={brkChart} />
               </div>
               {/* <div className="card">
                 <h3>BRK</h3>

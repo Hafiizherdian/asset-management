@@ -7,8 +7,8 @@ import {Separator} from "@heroui/react";
 const MENU = [
   { href: "/", label: "Overview" },
   { href: "/kendaraan", label: "Daftar kendaraan" },
+  { href: "/brk", label: "Biaya Perbaikan" },
   { href: "/service", label: "Dokumen" },
-  { href: "/brk", label: "BRK & service" },
   { href: "/impor", label: "Impor data" },
 ];
 

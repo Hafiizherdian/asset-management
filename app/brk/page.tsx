@@ -59,7 +59,7 @@ export default async function BrkPage() {
             </div> */}
 
             <div className="card">
-              <h3>Daftar BRK</h3>
+              <h3>Daftar Biaya Realisasi Perbaikan</h3>
               {/* <div className="sub">
                 {rows.length > LIMIT ? `${LIMIT} terbaru dari ${rows.length} BRK` : `${rows.length} BRK`}
               </div> */}
