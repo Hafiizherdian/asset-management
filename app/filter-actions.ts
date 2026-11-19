@@ -16,6 +16,7 @@ async function setFilter(name: "area" | "fungsi" | "nopol" | "tahun", raw: strin
   } else {
     store.delete(name);
   }
+  if (name !== "fungsi") store.delete("ket");
   revalidatePath("/", "layout");
 }
 
@@ -49,4 +50,32 @@ export async function setNopolFilter(nopol: string) {
 
 export async function setTahunFilter(tahun: string) {
   await setFilter("tahun", tahun, 4);
+}
+
+const KET_COOKIE_MAX = 10000; 
+
+export async function setKeteranganFilter(
+  input: { mode: "in" | "ex"; values: string[] } | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const store = await cookies();
+
+  if (!input) {
+    store.delete("ket");
+    revalidatePath("/", "layout");
+    return { ok: true };
+  }
+
+  const m = input.mode === "ex" ? "ex" : "in";
+  const v = (Array.isArray(input.values) ? input.values : [])
+    .filter((x) => typeof x === "string")
+    .map((x) => x.slice(0, 300));
+
+  const raw = JSON.stringify({ m, v });
+  if (encodeURIComponent(raw).length > KET_COOKIE_MAX) {
+    return { ok: false, error: "Terlalu banyak nilai dipilih untuk disimpan. Persempit pilihan lewat pencarian." };
+  }
+
+  store.set("ket", raw, { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax" });
+  revalidatePath("/", "layout");
+  return { ok: true };
 }

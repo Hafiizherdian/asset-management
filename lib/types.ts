@@ -76,3 +76,6 @@ export type BrkRecord = {
   operator: string | null;
   created_at: string;
 };
+
+/** Filter kolom Keterangan: "in" = hanya nilai ini, "ex" = semua kecuali nilai ini. */
+export type KetFilter = { m: "in" | "ex"; v: string[] };

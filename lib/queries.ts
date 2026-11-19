@@ -1,12 +1,26 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { pool } from "@/lib/db";
-import type { BrkRecord, ImportLogRow, Vehicle, VehicleHistoryRow } from "@/lib/types";
+import type { BrkRecord, ImportLogRow, KetFilter, Vehicle, VehicleHistoryRow } from "@/lib/types";
 
 /** Kendaraan tidak aktif tetap tersimpan di database, tapi tidak ditampilkan di aplikasi. */
 const VISIBLE = "status <> 'tidak_aktif'";
 
-export type Filters = { area: string; fungsi: string; nopol: string; tahun: string };
+export type Filters = { area: string; fungsi: string; nopol: string; tahun: string; ket: KetFilter | null };
+
+function parseKet(raw: string | undefined): KetFilter | null {
+  if (!raw) return null;
+  try {
+    const j = JSON.parse(raw);
+    if ((j?.m !== "in" && j?.m !== "ex") || !Array.isArray(j.v)) return null;
+    return {
+      m: j.m,
+      v: j.v.filter((x: unknown): x is string => typeof x === "string").slice(0, 2000),
+    };
+  } catch {
+    return null;
+  }
+}
 
 export async function getFilters(): Promise<Filters> {
   const store = await cookies();
@@ -15,7 +29,19 @@ export async function getFilters(): Promise<Filters> {
     fungsi: store.get("fungsi")?.value ?? "",
     nopol: store.get("nopol")?.value ?? "",
     tahun: store.get("tahun")?.value ?? "",
+    ket: parseKet(store.get("ket")?.value),
   };
+}
+
+type Param = string | number | string[];
+
+/** Potongan SQL untuk filter Keterangan (null kalau tidak aktif); menambah parameter ke `params`. */
+function ketClause(f: Filters, col: string, params: Param[]): string | null {
+  if (!f.ket) return null;
+  params.push(f.ket.v);
+  const expr = `coalesce(trim(${col}), '')`;
+  const ref = `$${params.length}::text[]`;
+  return f.ket.m === "in" ? `${expr} = any(${ref})` : `${expr} <> all(${ref})`;
 }
 
 /**
@@ -48,11 +74,11 @@ export async function getVehicles(): Promise<Vehicle[]> {
   return rows;
 }
 
-/** Data BRK, mengikuti filter area, tahun BRK, dan No. Polisi di header. */
+/** Data BRK, mengikuti filter area, tahun, No. Polisi, dan Keterangan. */
 export async function getBrk(): Promise<BrkRecord[]> {
   const f = await getFilters();
   const where: string[] = [];
-  const params: (string | number)[] = [];
+  const params: Param[] = [];
 
   if (f.area) {
     params.push(f.area);
@@ -66,6 +92,8 @@ export async function getBrk(): Promise<BrkRecord[]> {
     params.push(f.nopol);
     where.push(`nopol = $${params.length}`);
   }
+  const ket = ketClause(f, "keterangan", params);
+  if (ket) where.push(ket);
 
   const { rows } = await pool.query<BrkRecord>(
     `select * from brk_current
@@ -76,11 +104,11 @@ export async function getBrk(): Promise<BrkRecord[]> {
   return rows;
 }
 
-/** Ringkasan BRK (jumlah & total biaya), mengikuti filter area, tahun, dan No. Polisi di header. */
+/** Ringkasan BRK (jumlah & total biaya), mengikuti semua filter termasuk Keterangan. */
 export async function getBrkSummary(): Promise<{ count: number; total: number }> {
   const f = await getFilters();
   const where: string[] = [];
-  const params: (string | number)[] = [];
+  const params: Param[] = [];
 
   if (f.area) {
     params.push(f.area);
@@ -94,6 +122,8 @@ export async function getBrkSummary(): Promise<{ count: number; total: number }>
     params.push(f.nopol);
     where.push(`nopol = $${params.length}`);
   }
+  const ket = ketClause(f, "keterangan", params);
+  if (ket) where.push(ket);
 
   const { rows } = await pool.query<{ count: number; total: string }>(
     `select count(*)::int as count, coalesce(sum(jumlah), 0) as total
@@ -108,13 +138,13 @@ export type BrkYearFungsi = { tahun: number; fungsi: string; total: number };
 
 /**
  * Total biaya BRK per tahun per fungsi kendaraan (fungsi diambil lewat NOPOL).
- * Mengikuti filter Area dan No. Polisi. Filter Tahun sengaja tidak dipakai,
+ * Mengikuti filter Area, No. Polisi, dan Keterangan. Filter Tahun sengaja tidak dipakai,
  * karena grafik ini justru membandingkan semua tahun.
  */
 export async function getBrkByYearFungsi(): Promise<BrkYearFungsi[]> {
   const f = await getFilters();
   const where = ["b.tahun is not null"];
-  const params: string[] = [];
+  const params: Param[] = [];
 
   if (f.area) {
     params.push(f.area);
@@ -124,6 +154,8 @@ export async function getBrkByYearFungsi(): Promise<BrkYearFungsi[]> {
     params.push(f.nopol);
     where.push(`b.nopol = $${params.length}`);
   }
+  const ket = ketClause(f, "b.keterangan", params);
+  if (ket) where.push(ket);
 
   const { rows } = await pool.query<{ tahun: number; fungsi: string; total: string }>(
     `select b.tahun,
@@ -141,6 +173,35 @@ export async function getBrkByYearFungsi(): Promise<BrkYearFungsi[]> {
     params,
   );
   return rows.map((r) => ({ tahun: r.tahun, fungsi: r.fungsi, total: Number(r.total) }));
+}
+
+/** Nilai Keterangan beserta jumlah barisnya, mengikuti filter header (tapi bukan filter Keterangan sendiri). */
+export async function getKeteranganOptions(): Promise<[string, number][]> {
+  const f = await getFilters();
+  const where: string[] = [];
+  const params: Param[] = [];
+
+  if (f.area) {
+    params.push(f.area);
+    where.push(`area = $${params.length}`);
+  }
+  if (/^\d{4}$/.test(f.tahun)) {
+    params.push(Number(f.tahun));
+    where.push(`tahun = $${params.length}`);
+  }
+  if (f.nopol) {
+    params.push(f.nopol);
+    where.push(`nopol = $${params.length}`);
+  }
+
+  const { rows } = await pool.query<{ ket: string; n: number }>(
+    `select coalesce(trim(keterangan), '') as ket, count(*)::int as n
+     from brk_current
+     ${where.length ? `where ${where.join(" and ")}` : ""}
+     group by 1 order by 1`,
+    params,
+  );
+  return rows.map((r) => [r.ket, r.n]);
 }
 
 /** Daftar area untuk dropdown header (tidak terfilter). */

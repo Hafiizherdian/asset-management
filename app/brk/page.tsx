@@ -1,7 +1,8 @@
-import { getBrk } from "@/lib/queries";
+import { getBrk, getFilters, getKeteranganOptions } from "@/lib/queries";
 import { fmtDate } from "@/lib/kendaraan-utils";
 import { Kpi } from "@/components/ui";
 import Header from "@/components/Header";
+import BrkTable, { type BrkRow } from "@/components/BrkTable";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ const rupiah = new Intl.NumberFormat("id-ID", {
 
 export default async function BrkPage() {
   // getBrk() mengikuti filter area, tahun (dari data BRK), dan No. Polisi di header
-  const rows = await getBrk();
+  const [rows, f, ketOptions] = await Promise.all([getBrk(), getFilters(), getKeteranganOptions()]);
 
   const total = rows.reduce((s, r) => s + Number(r.jumlah ?? 0), 0);
   const kendaraan = new Set(rows.map((r) => r.nopol).filter(Boolean)).size;
@@ -28,11 +29,22 @@ export default async function BrkPage() {
   const rekening = [...perRekening].sort((a, b) => b[1] - a[1]);
   const max = rekening[0]?.[1] || 1;
 
+  const tableRows: BrkRow[] = rows.map((r) => ({
+  id: r.id,
+  area: r.area,
+  nopol: r.nopol ?? "",
+  tanggal: fmtDate(r.tanggal),
+  no_bukti: r.no_bukti ?? "",
+  rekening: r.rekening ?? "",
+  keterangan: (r.keterangan ?? "").trim(),
+  jumlah: r.jumlah === null ? null : Number(r.jumlah),
+}));
+
   return (
     <>
       <Header page="BRK" />
       <div className="pg">
-        {rows.length === 0 ? (
+        {rows.length === 0 && !f.ket ?(
           <div className="card">
             <h3>Belum ada data BRK</h3>
             <p className="sub">Impor file BRK lewat menu Impor data, tab Data BRK. Atau ubah filter di atas.</p>
@@ -60,32 +72,7 @@ export default async function BrkPage() {
 
             <div className="card">
               <h3>Daftar Biaya Realisasi Perbaikan</h3>
-              {/* <div className="sub">
-                {rows.length > LIMIT ? `${LIMIT} terbaru dari ${rows.length} BRK` : `${rows.length} BRK`}
-              </div> */}
-              <div className="tw" style={{ maxHeight: "560px", overflowY: "auto" }}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Area</th><th>NOPOL</th><th>Tanggal</th><th>No. Bukti</th>
-                      <th>Rekening</th><th>Keterangan</th><th>Jumlah</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.slice(0, LIMIT).map((r) => (
-                      <tr key={r.id}>
-                        <td>{r.area}</td>
-                        <td>{r.nopol || "–"}</td>
-                        <td>{fmtDate(r.tanggal)}</td>
-                        <td>{r.no_bukti || "-"}</td>
-                        <td>{r.rekening || "–"}</td>
-                        <td>{r.keterangan || "–"}</td>
-                        <td>{r.jumlah === null ? "–" : rupiah.format(Number(r.jumlah))}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <BrkTable rows={tableRows} options={ketOptions} active={f.ket} />
             </div>
           </>
         )}
